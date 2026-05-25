@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-
-=======
 import 'package:go_router/go_router.dart';
-import 'package:select/app.dart';
 
 import '../../features/admin/dashboard/admin_dashboard_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -15,23 +11,22 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/',
       name: 'splash',
-      builder: (context, state) => const SelectApp(),
+      builder: (context, state) => const SplashScreen(),
     ),
     GoRoute(
       path: '/login',
       name: 'login',
-      builder: (context, state) => const SelectApp(),
+      builder: (context, state) => const LoginScreen(),
     ),
     GoRoute(
       path: '/customer/home',
       name: 'customer-home',
-      builder: (context, state) => const SelectApp(),
+      builder: (context, state) => const CustomerHomeScreen(),
     ),
     GoRoute(
       path: '/admin/dashboard',
       name: 'admin-dashboard',
-      builder: (context, state) => const SelectApp(),
+      builder: (context, state) => const AdminDashboardScreen(),
     ),
   ],
 );
->>>>>>> 934856487213878288c1693e8dd4690a52c20957
