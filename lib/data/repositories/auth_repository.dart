@@ -14,9 +14,11 @@ class AuthRepository {
 
   bool _googleInitialized = false;
 
-  AuthRepository({required Dio dio, required SupabaseClient supabase})
-    : _dio = dio,
-      _supabase = supabase;
+  AuthRepository({
+    required Dio dio,
+    required SupabaseClient supabase,
+  })  : _dio = dio,
+        _supabase = supabase;
 
   bool get hasSession => _supabase.auth.currentSession != null;
 
@@ -70,13 +72,18 @@ class AuthRepository {
         );
       }
 
-      final apiResponse = ApiResponse<AppUser>.fromJson(body, (json) {
-        if (json is Map<String, dynamic>) {
-          return AppUser.fromJson(json);
-        }
+      final apiResponse = ApiResponse<AppUser>.fromJson(
+        body,
+        (json) {
+          if (json is Map<String, dynamic>) {
+            return AppUser.fromJson(json);
+          }
 
-        throw const ApiException(message: 'Data profil tidak valid.');
-      });
+          throw const ApiException(
+            message: 'Data profil tidak valid.',
+          );
+        },
+      );
 
       final user = apiResponse.data;
 
@@ -89,7 +96,9 @@ class AuthRepository {
       }
 
       if (!user.isActive) {
-        throw const ApiException(message: 'Akun kamu sedang tidak aktif.');
+        throw const ApiException(
+          message: 'Akun kamu sedang tidak aktif.',
+        );
       }
 
       return user;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -13,14 +15,15 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 final authControllerProvider =
-    StateNotifierProvider<AuthController, AsyncValue<AppUser?>>((ref) {
-  return AuthController(ref.watch(authRepositoryProvider));
-});
+    AsyncNotifierProvider<AuthController, AppUser?>(AuthController.new);
 
-class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
-  final AuthRepository _repository;
+class AuthController extends AsyncNotifier<AppUser?> {
+  AuthRepository get _repository => ref.read(authRepositoryProvider);
 
-  AuthController(this._repository) : super(const AsyncData(null));
+  @override
+  FutureOr<AppUser?> build() {
+    return null;
+  }
 
   Future<void> loadCurrentUser() async {
     if (!_repository.hasSession) {

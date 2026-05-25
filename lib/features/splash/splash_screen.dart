@@ -29,7 +29,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       await ref.read(authControllerProvider.notifier).loadCurrentUser();
 
       final authState = ref.read(authControllerProvider);
-      final user = authState.valueOrNull;
+      final user = authState.value;
 
       if (!mounted) return;
 
