@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../maps/presentation/location_map_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -72,9 +73,29 @@ class AdminDashboardScreen extends ConsumerWidget {
               const Text(
                 'Login berhasil sebagai Admin.\nPart berikutnya untuk admin akan dibuat dashboard, booking, item, dan verifikasi.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  height: 1.5,
+                style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    context.push(
+                      '/maps/location',
+                      extra: const LocationMapArgs(
+                        latitude: -8.164846,
+                        longitude: 113.715,
+                        title: 'Lokasi Verifikasi Customer',
+                        addressText: 'Jl. Kalimantan, Sumbersari, Jember',
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.map_rounded),
+                  label: const Text(
+                    'Tes Maps Lokasi Customer',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                 ),
               ),
             ],

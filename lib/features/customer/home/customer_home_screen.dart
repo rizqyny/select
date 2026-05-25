@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../verification/models/verification_capture_result.dart';
 
 class CustomerHomeScreen extends ConsumerWidget {
   const CustomerHomeScreen({super.key});
@@ -52,9 +55,7 @@ class CustomerHomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                user?.fullName.isNotEmpty == true
-                    ? user!.fullName
-                    : 'Customer',
+                user?.fullName.isNotEmpty == true ? user!.fullName : 'Customer',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
@@ -74,9 +75,38 @@ class CustomerHomeScreen extends ConsumerWidget {
               const Text(
                 'Login berhasil sebagai Customer.\nPart berikutnya kita buat Home, kategori, daftar item, dan detail produk.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  height: 1.5,
+                style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final result = await context
+                        .push<VerificationCaptureResult>(
+                          '/verification/capture',
+                          extra: const VerificationCaptureArgs(
+                            bookingId: 1,
+                            type: VerificationCaptureType.identity,
+                          ),
+                        );
+
+                    if (result == null || !context.mounted) return;
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Foto dan GPS berhasil: ${result.location.addressText}',
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.camera_alt_rounded),
+                  label: const Text(
+                    'Tes Kamera KTP + GPS',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
                 ),
               ),
             ],
