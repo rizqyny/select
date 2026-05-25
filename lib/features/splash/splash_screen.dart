@@ -1,34 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/error_message.dart';
+import '../../data/models/app_user.dart';
+import '../auth/providers/auth_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkSession();
+
+    Future.microtask(_checkAuth);
   }
 
-  Future<void> _checkSession() async {
-    await Future.delayed(const Duration(milliseconds: 800));
+  Future<void> _checkAuth() async {
+    await Future.delayed(const Duration(milliseconds: 700));
 
-    if (!mounted) return;
+    try {
+      await ref.read(authControllerProvider.notifier).loadCurrentUser();
 
-    final session = Supabase.instance.client.auth.currentSession;
+      final authState = ref.read(authControllerProvider);
+      final user = authState.valueOrNull;
 
-    if (session == null) {
+      if (!mounted) return;
+
+      if (user == null) {
+        context.go('/login');
+        return;
+      }
+
+      _redirectByRole(user);
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(readableError(error))),
+      );
+
       context.go('/login');
-    } else {
-      context.go('/customer/home');
+    }
+  }
+
+  void _redirectByRole(AppUser user) {
+    switch (user.role) {
+      case UserRole.admin:
+        context.go('/admin/dashboard');
+        break;
+      case UserRole.customer:
+        context.go('/customer/home');
+        break;
+      case UserRole.unknown:
+        context.go('/login');
+        break;
     }
   }
 
