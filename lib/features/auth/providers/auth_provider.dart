@@ -42,6 +42,25 @@ class AuthController extends AsyncNotifier<AppUser?> {
     }
   }
 
+  Future<AppUser> signInWithEmailPassword({
+    required String email,
+    required String password,
+  }) async {
+    state = const AsyncLoading();
+
+    try {
+      final user = await _repository.signInWithEmailPassword(
+        email: email,
+        password: password,
+      );
+      state = AsyncData(user);
+      return user;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+
   Future<AppUser> signInWithGoogle() async {
     state = const AsyncLoading();
 
