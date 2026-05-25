@@ -51,6 +51,7 @@ dependencies:
   flutter_map: ^8.3.0
   latlong2: ^0.9.1
   shimmer: ^3.0.0
+  camera: ^0.12.0+1
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +77,16 @@ flutter:
 
   assets:
     - .env
+
+  fonts:
+    - family: SpotifyMix
+      fonts:
+        - asset: assets/fonts/SpotifyMix-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/SpotifyMix-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/SpotifyMix-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:
