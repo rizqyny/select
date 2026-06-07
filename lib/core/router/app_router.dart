@@ -6,6 +6,9 @@ import '../../features/customer/home/customer_home_screen.dart';
 import '../../features/customer/items/presentation/item_detail_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/customer/booking/presentation/create_booking_screen.dart';
+import '../../features/customer/booking/presentation/booking_detail_screen.dart';
+import '../../features/customer/booking/presentation/customer_bookings_screen.dart';
+import '../../features/customer/booking/presentation/payment_webview_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -41,6 +44,36 @@ final appRouter = GoRouter(
         final itemId = int.tryParse(state.pathParameters['itemId'] ?? '') ?? 0;
 
         return CreateBookingScreen(itemId: itemId);
+      },
+    ),
+    GoRoute(
+      path: '/customer/bookings',
+      name: 'customer-bookings',
+      builder: (context, state) => const CustomerBookingsScreen(),
+    ),
+    GoRoute(
+      path: '/customer/bookings/:id',
+      name: 'customer-booking-detail',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+
+        return BookingDetailScreen(bookingId: id);
+      },
+    ),
+    GoRoute(
+      path: '/customer/payment-webview',
+      name: 'customer-payment-webview',
+      builder: (context, state) {
+        final args = state.extra as PaymentWebViewArgs?;
+
+        return PaymentWebViewScreen(
+          args:
+              args ??
+              const PaymentWebViewArgs(
+                redirectUrl: 'https://app.sandbox.midtrans.com/',
+                title: 'Pembayaran',
+              ),
+        );
       },
     ),
     GoRoute(

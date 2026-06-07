@@ -58,24 +58,73 @@ class BookingRepository {
         },
       );
 
-      final body = response.data;
-
-      if (body is Map<String, dynamic>) {
-        final data = body['data'];
-
-        if (data is Map<String, dynamic>) {
-          return BookingModel.fromJson(data);
-        }
-
-        if (body.containsKey('id')) {
-          return BookingModel.fromJson(body);
-        }
-      }
-
-      throw const ApiException(message: 'Format response booking tidak valid.');
+      return _parseSingleBooking(response.data);
     } on DioException catch (error) {
       throw _handleDioError(error);
     }
+  }
+
+  Future<List<BookingModel>> fetchMyBookings({
+    String? status,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final queryParameters = <String, dynamic>{'page': page, 'limit': limit};
+
+      if (status != null && status.trim().isNotEmpty) {
+        queryParameters['status'] = status;
+      }
+
+      final response = await _dio.get(
+        ApiConstants.myBookings,
+        queryParameters: queryParameters,
+      );
+
+      final body = response.data;
+
+      Object? data = body;
+
+      if (body is Map<String, dynamic>) {
+        data = body['data'];
+      }
+
+      if (data is! List) {
+        throw const ApiException(message: 'Format data booking tidak valid.');
+      }
+
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(BookingModel.fromJson)
+          .toList();
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    }
+  }
+
+  Future<BookingModel> fetchBookingDetail(int bookingId) async {
+    try {
+      final response = await _dio.get(ApiConstants.bookingDetail(bookingId));
+      return _parseSingleBooking(response.data);
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    }
+  }
+
+  BookingModel _parseSingleBooking(Object? body) {
+    if (body is Map<String, dynamic>) {
+      final data = body['data'];
+
+      if (data is Map<String, dynamic>) {
+        return BookingModel.fromJson(data);
+      }
+
+      if (body.containsKey('id')) {
+        return BookingModel.fromJson(body);
+      }
+    }
+
+    throw const ApiException(message: 'Format response booking tidak valid.');
   }
 
   String _formatDate(DateTime date) {

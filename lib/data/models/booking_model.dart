@@ -6,7 +6,9 @@ class BookingModel {
   final DateTime? rentalEndDate;
   final String? customerNote;
   final num totalAmount;
+  final String? paymentStatus;
   final DateTime? createdAt;
+  final List<BookingItemSummary> items;
 
   const BookingModel({
     required this.id,
@@ -16,7 +18,9 @@ class BookingModel {
     required this.rentalEndDate,
     required this.customerNote,
     required this.totalAmount,
+    required this.paymentStatus,
     required this.createdAt,
+    this.items = const [],
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -38,8 +42,39 @@ class BookingModel {
             json['gross_amount'] ??
             json['grand_total'],
       ),
+      paymentStatus: json['payment_status']?.toString(),
       createdAt: _toDateTime(json['created_at']),
+      items: _parseItems(json),
     );
+  }
+
+  bool get canPay {
+    const blocked = {
+      'paid',
+      'approved',
+      'ongoing',
+      'completed',
+      'cancelled',
+      'rejected',
+      'expired',
+    };
+
+    return !blocked.contains(status);
+  }
+
+  static List<BookingItemSummary> _parseItems(Map<String, dynamic> json) {
+    final raw =
+        json['items'] ??
+        json['booking_items'] ??
+        json['bookingItems'] ??
+        json['booking_details'];
+
+    if (raw is! List) return <BookingItemSummary>[];
+
+    return raw
+        .whereType<Map<String, dynamic>>()
+        .map(BookingItemSummary.fromJson)
+        .toList();
   }
 
   static int _toInt(Object? value) {
@@ -58,5 +93,70 @@ class BookingModel {
   static DateTime? _toDateTime(Object? value) {
     if (value == null) return null;
     return DateTime.tryParse(value.toString());
+  }
+}
+
+class BookingItemSummary {
+  final int id;
+  final int itemId;
+  final String itemName;
+  final String imageUrl;
+  final num dailyPrice;
+
+  const BookingItemSummary({
+    required this.id,
+    required this.itemId,
+    required this.itemName,
+    required this.imageUrl,
+    required this.dailyPrice,
+  });
+
+  factory BookingItemSummary.fromJson(Map<String, dynamic> json) {
+    final item = json['item'];
+
+    if (item is Map<String, dynamic>) {
+      final primaryImage = item['primary_image'];
+
+      return BookingItemSummary(
+        id: _toInt(json['id']),
+        itemId: _toInt(item['id'] ?? json['item_id']),
+        itemName: item['name']?.toString() ?? 'Barang',
+        imageUrl: _imageUrlFromPrimaryImage(primaryImage),
+        dailyPrice: _toNum(item['daily_price'] ?? json['daily_price']),
+      );
+    }
+
+    return BookingItemSummary(
+      id: _toInt(json['id']),
+      itemId: _toInt(json['item_id']),
+      itemName:
+          json['item_name']?.toString() ?? json['name']?.toString() ?? 'Barang',
+      imageUrl: json['image_url']?.toString() ?? '',
+      dailyPrice: _toNum(json['daily_price']),
+    );
+  }
+
+  static String _imageUrlFromPrimaryImage(Object? value) {
+    if (value is Map<String, dynamic>) {
+      final url = value['public_url']?.toString() ?? '';
+
+      if (url.contains('example.com')) return '';
+      return url;
+    }
+
+    return '';
+  }
+
+  static int _toInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static num _toNum(Object? value) {
+    if (value is num) return value;
+    if (value is String) return num.tryParse(value) ?? 0;
+    return 0;
   }
 }

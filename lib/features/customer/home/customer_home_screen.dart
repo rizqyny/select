@@ -219,7 +219,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                             onTap: () {
                               context.push('/customer/items/${item.id}');
                             },
-                            
                           );
                         }, childCount: state.items.length),
                         gridDelegate:
@@ -244,7 +243,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             case 0:
               break;
             case 1:
-              _showComingSoon('Pesanan');
+              context.push('/customer/bookings');
               break;
             case 2:
               _showComingSoon('Favorit');

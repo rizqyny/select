@@ -41,7 +41,7 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
       SnackBar(content: Text('Booking berhasil dibuat: ${booking.code}')),
     );
 
-    context.pop();
+    context.go('/customer/bookings/${booking.id}');
   }
 
   @override

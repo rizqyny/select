@@ -14,6 +14,9 @@ class ApiConstants {
   static const myBookings = '/bookings/my';
   static String bookingDetail(int id) => '/bookings/$id';
   static String cancelBooking(int id) => '/bookings/$id/cancel';
+  static String createPayment(int bookingId) => '/payments/create/$bookingId';
+  static String paymentByBooking(int bookingId) =>
+      '/payments/booking/$bookingId';
 
   static const registerDevice = '/notifications/register-device';
   static const myNotifications = '/notifications/my';
