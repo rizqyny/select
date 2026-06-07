@@ -47,9 +47,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   void _showComingSoon(String label) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$label akan dibuat pada part berikutnya.'),
-      ),
+      SnackBar(content: Text('$label akan dibuat pada part berikutnya.')),
     );
   }
 
@@ -63,9 +61,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       body: SafeArea(
         child: homeState.when(
           loading: () => const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primary,
-            ),
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
           error: (error, stackTrace) => _ErrorState(
             message: readableError(error),
@@ -76,7 +72,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           data: (state) {
             return RefreshIndicator(
               onRefresh: () {
-                return ref.read(customerHomeControllerProvider.notifier).refresh();
+                return ref
+                    .read(customerHomeControllerProvider.notifier)
+                    .refresh();
               },
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -213,24 +211,24 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
                       sliver: SliverGrid(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final item = state.items[index];
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final item = state.items[index];
 
-                            return CustomerItemCard(
-                              item: item,
-                              onTap: () => _showComingSoon('Detail produk'),
-                            );
-                          },
-                          childCount: state.items.length,
-                        ),
+                          return CustomerItemCard(
+                            item: item,
+                            onTap: () {
+                              context.push('/customer/items/${item.id}');
+                            },
+                            
+                          );
+                        }, childCount: state.items.length),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          childAspectRatio: 0.68,
-                        ),
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 14,
+                              crossAxisSpacing: 14,
+                              childAspectRatio: 0.68,
+                            ),
                       ),
                     ),
                 ],
@@ -301,11 +299,7 @@ class _HomeHeader extends StatelessWidget {
         const CircleAvatar(
           radius: 25,
           backgroundColor: AppColors.primary,
-          child: Icon(
-            Icons.person_rounded,
-            color: AppColors.black,
-            size: 28,
-          ),
+          child: Icon(Icons.person_rounded, color: AppColors.black, size: 28),
         ),
         const SizedBox(width: 14),
         Expanded(
@@ -337,10 +331,7 @@ class _HomeHeader extends StatelessWidget {
           onPressed: onNotificationTap,
           icon: const Icon(Icons.notifications_none_rounded),
         ),
-        IconButton(
-          onPressed: onLogout,
-          icon: const Icon(Icons.logout_rounded),
-        ),
+        IconButton(onPressed: onLogout, icon: const Icon(Icons.logout_rounded)),
       ],
     );
   }
@@ -350,10 +341,7 @@ class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _ErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
