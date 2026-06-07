@@ -1,0 +1,71 @@
+import 'package:dio/dio.dart';
+
+import '../../core/constants/api_constants.dart';
+import '../../core/errors/api_exception.dart';
+import '../models/identity_verification_model.dart';
+
+class VerificationRepository {
+  final Dio _dio;
+
+  const VerificationRepository({
+    required Dio dio,
+  }) : _dio = dio;
+
+  Future<IdentityVerificationModel> submitIdentityVerification({
+    required int bookingId,
+    required String ktpName,
+    required String ktpNumberMasked,
+    required String photoPath,
+    required double latitude,
+    required double longitude,
+    required String addressText,
+    required DateTime takenAt,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.identityVerification,
+        data: {
+          'booking_id': bookingId,
+          'document_type': 'ktp',
+          'ktp_name': ktpName.trim(),
+          'ktp_number_masked': ktpNumberMasked.trim(),
+          'photo_path': photoPath,
+          'latitude': latitude,
+          'longitude': longitude,
+          'address_text': addressText,
+          'taken_at': takenAt.toUtc().toIso8601String(),
+        },
+      );
+
+      final body = response.data;
+
+      if (body is Map<String, dynamic>) {
+        final data = body['data'];
+
+        if (data is Map<String, dynamic>) {
+          return IdentityVerificationModel.fromJson(data);
+        }
+
+        if (body.containsKey('id')) {
+          return IdentityVerificationModel.fromJson(body);
+        }
+      }
+
+      throw const ApiException(
+        message: 'Format response verifikasi identitas tidak valid.',
+      );
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    }
+  }
+
+  ApiException _handleDioError(DioException error) {
+    final err = error.error;
+
+    if (err is ApiException) {
+      return err;
+    }
+
+    return ApiException.fromDio(error);
+  }
+}

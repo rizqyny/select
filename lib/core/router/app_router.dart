@@ -4,6 +4,7 @@ import '../../features/admin/dashboard/admin_dashboard_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/customer/home/customer_home_screen.dart';
 import '../../features/customer/items/presentation/item_detail_screen.dart';
+import '../../features/customer/verification/presentation/identity_verification_screen.dart';
 import '../../features/splash/splash_screen.dart';
 
 final appRouter = GoRouter(
@@ -31,6 +32,16 @@ final appRouter = GoRouter(
         final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
 
         return ItemDetailScreen(itemId: id);
+      },
+    ),
+    GoRoute(
+      path: '/customer/verifications/identity/:bookingId',
+      name: 'customer-identity-verification',
+      builder: (context, state) {
+        final bookingId =
+            int.tryParse(state.pathParameters['bookingId'] ?? '') ?? 0;
+
+        return IdentityVerificationScreen(bookingId: bookingId);
       },
     ),
     GoRoute(
