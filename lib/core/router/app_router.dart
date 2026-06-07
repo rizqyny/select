@@ -5,6 +5,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/customer/home/customer_home_screen.dart';
 import '../../features/customer/items/presentation/item_detail_screen.dart';
 import '../../features/splash/splash_screen.dart';
+import '../../features/customer/booking/presentation/create_booking_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -31,6 +32,15 @@ final appRouter = GoRouter(
         final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
 
         return ItemDetailScreen(itemId: id);
+      },
+    ),
+    GoRoute(
+      path: '/customer/booking/create/:itemId',
+      name: 'customer-create-booking',
+      builder: (context, state) {
+        final itemId = int.tryParse(state.pathParameters['itemId'] ?? '') ?? 0;
+
+        return CreateBookingScreen(itemId: itemId);
       },
     ),
     GoRoute(
