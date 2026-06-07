@@ -91,13 +91,13 @@ class ItemRepository {
     try {
       final response = await _dio.get(ApiConstants.itemReviews(itemId));
 
-      return _parseListResponse<ReviewModel>(
-        response.data,
-        ReviewModel.fromJson,
-        invalidMessage: 'Format data review tidak valid.',
-      );
+      return _parseFlexibleReviewResponse(response.data);
     } on DioException catch (error) {
       throw _handleDioError(error);
+    } catch (_) {
+      // Review tidak boleh membuat halaman detail gagal.
+      // Kalau format response review belum sesuai, tampilkan review kosong saja.
+      return <ReviewModel>[];
     }
   }
 
@@ -120,6 +120,49 @@ class ItemRepository {
         .whereType<Map<String, dynamic>>()
         .map<T>((json) => fromJson(json))
         .toList();
+  }
+
+  List<ReviewModel> _parseFlexibleReviewResponse(Object? body) {
+    Object? data = body;
+
+    if (body is Map<String, dynamic>) {
+      data = body['data'];
+    }
+
+    if (data == null) {
+      return <ReviewModel>[];
+    }
+
+    if (data is List) {
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map<ReviewModel>(ReviewModel.fromJson)
+          .toList();
+    }
+
+    if (data is Map<String, dynamic>) {
+      final possibleListKeys = ['reviews', 'items', 'data', 'results', 'rows'];
+
+      for (final key in possibleListKeys) {
+        final value = data[key];
+
+        if (value is List) {
+          return value
+              .whereType<Map<String, dynamic>>()
+              .map<ReviewModel>(ReviewModel.fromJson)
+              .toList();
+        }
+      }
+
+      // Kalau ternyata endpoint mengirim satu review sebagai object
+      if (data.containsKey('rating') ||
+          data.containsKey('comment') ||
+          data.containsKey('reviewer_name')) {
+        return <ReviewModel>[ReviewModel.fromJson(data)];
+      }
+    }
+
+    return <ReviewModel>[];
   }
 
   ApiException _handleDioError(DioException error) {

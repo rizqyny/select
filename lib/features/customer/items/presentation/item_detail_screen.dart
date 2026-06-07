@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -13,10 +14,7 @@ import '../providers/item_detail_provider.dart';
 class ItemDetailScreen extends ConsumerWidget {
   final int itemId;
 
-  const ItemDetailScreen({
-    super.key,
-    required this.itemId,
-  });
+  const ItemDetailScreen({super.key, required this.itemId});
 
   Future<void> _toggleFavorite(BuildContext context, WidgetRef ref) async {
     try {
@@ -50,14 +48,6 @@ class ItemDetailScreen extends ConsumerWidget {
     }
   }
 
-  void _showBookingComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur booking akan dibuat pada Part 5.'),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailState = ref.watch(itemDetailControllerProvider(itemId));
@@ -66,9 +56,7 @@ class ItemDetailScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: detailState.when(
         loading: () => const Center(
-          child: CircularProgressIndicator(
-            color: AppColors.primary,
-          ),
+          child: CircularProgressIndicator(color: AppColors.primary),
         ),
         error: (error, stackTrace) => _DetailErrorState(
           message: readableError(error),
@@ -148,9 +136,7 @@ class ItemDetailScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
               decoration: const BoxDecoration(
                 color: AppColors.white,
-                border: Border(
-                  top: BorderSide(color: AppColors.border),
-                ),
+                border: Border(top: BorderSide(color: AppColors.border)),
               ),
               child: Row(
                 children: [
@@ -168,13 +154,18 @@ class ItemDetailScreen extends ConsumerWidget {
                   Expanded(
                     child: AppButton(
                       text: item.isAvailable ? 'Booking' : 'Tidak Tersedia',
-                      backgroundColor:
-                          item.isAvailable ? AppColors.black : AppColors.border,
+                      backgroundColor: item.isAvailable
+                          ? AppColors.black
+                          : AppColors.border,
                       foregroundColor: item.isAvailable
                           ? AppColors.white
                           : AppColors.textSecondary,
                       onPressed: item.isAvailable
-                          ? () => _showBookingComingSoon(context)
+                          ? () {
+                              context.push(
+                                '/customer/booking/create/${item.id}',
+                              );
+                            }
                           : null,
                     ),
                   ),
@@ -192,9 +183,7 @@ class ItemDetailScreen extends ConsumerWidget {
 class _ProductImage extends StatelessWidget {
   final ItemModel item;
 
-  const _ProductImage({
-    required this.item,
-  });
+  const _ProductImage({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -220,9 +209,7 @@ class _ProductImage extends StatelessWidget {
         return Container(
           color: AppColors.input,
           child: const Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primary,
-            ),
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
         );
       },
@@ -245,9 +232,7 @@ class _ProductImage extends StatelessWidget {
 class _ProductMainInfo extends StatelessWidget {
   final ItemModel item;
 
-  const _ProductMainInfo({
-    required this.item,
-  });
+  const _ProductMainInfo({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -285,15 +270,9 @@ class _ProductMainInfo extends StatelessWidget {
           const SizedBox(height: 18),
           Row(
             children: [
-              _InfoPill(
-                icon: Icons.category_rounded,
-                label: item.categoryName,
-              ),
+              _InfoPill(icon: Icons.category_rounded, label: item.categoryName),
               const SizedBox(width: 10),
-              _InfoPill(
-                icon: Icons.qr_code_rounded,
-                label: item.serialNumber,
-              ),
+              _InfoPill(icon: Icons.qr_code_rounded, label: item.serialNumber),
             ],
           ),
         ],
@@ -305,9 +284,7 @@ class _ProductMainInfo extends StatelessWidget {
 class _DescriptionSection extends StatelessWidget {
   final ItemModel item;
 
-  const _DescriptionSection({
-    required this.item,
-  });
+  const _DescriptionSection({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -330,9 +307,7 @@ class _DescriptionSection extends StatelessWidget {
 class _SpecificationSection extends StatelessWidget {
   final ItemModel item;
 
-  const _SpecificationSection({
-    required this.item,
-  });
+  const _SpecificationSection({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -379,9 +354,7 @@ class _SpecificationSection extends StatelessWidget {
 class _ReviewSection extends StatelessWidget {
   final List<ReviewModel> reviews;
 
-  const _ReviewSection({
-    required this.reviews,
-  });
+  const _ReviewSection({required this.reviews});
 
   @override
   Widget build(BuildContext context) {
@@ -407,9 +380,7 @@ class _ReviewSection extends StatelessWidget {
 class _ReviewTile extends StatelessWidget {
   final ReviewModel review;
 
-  const _ReviewTile({
-    required this.review,
-  });
+  const _ReviewTile({required this.review});
 
   @override
   Widget build(BuildContext context) {
@@ -481,10 +452,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -519,30 +487,20 @@ class _InfoPill extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _InfoPill({
-    required this.icon,
-    required this.label,
-  });
+  const _InfoPill({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.input,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: AppColors.textSecondary,
-              size: 17,
-            ),
+            Icon(icon, color: AppColors.textSecondary, size: 17),
             const SizedBox(width: 7),
             Expanded(
               child: Text(
@@ -566,19 +524,14 @@ class _InfoPill extends StatelessWidget {
 class _StatusBadge extends StatelessWidget {
   final String status;
 
-  const _StatusBadge({
-    required this.status,
-  });
+  const _StatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
     final isAvailable = status == 'available';
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         color: isAvailable
             ? AppColors.success.withOpacity(0.12)
@@ -601,10 +554,7 @@ class _DetailErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _DetailErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _DetailErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {

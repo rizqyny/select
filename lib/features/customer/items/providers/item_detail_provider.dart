@@ -38,8 +38,8 @@ class ItemDetailState {
 
 final itemDetailControllerProvider =
     AsyncNotifierProvider.family<ItemDetailController, ItemDetailState, int>(
-  ItemDetailController.new,
-);
+      ItemDetailController.new,
+    );
 
 class ItemDetailController extends AsyncNotifier<ItemDetailState> {
   final int itemId;
@@ -54,13 +54,27 @@ class ItemDetailController extends AsyncNotifier<ItemDetailState> {
   @override
   FutureOr<ItemDetailState> build() async {
     final item = await _itemRepository.fetchItemDetail(itemId);
-    final reviews = await _itemRepository.fetchItemReviews(itemId);
-    final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
+
+    List<ReviewModel> reviews = <ReviewModel>[];
+    bool isFavorite = false;
+
+    try {
+      reviews = await _itemRepository.fetchItemReviews(itemId);
+    } catch (_) {
+      reviews = <ReviewModel>[];
+    }
+
+    try {
+      final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
+      isFavorite = favoriteIds.contains(itemId);
+    } catch (_) {
+      isFavorite = false;
+    }
 
     return ItemDetailState(
       item: item,
       reviews: reviews,
-      isFavorite: favoriteIds.contains(itemId),
+      isFavorite: isFavorite,
     );
   }
 
@@ -69,9 +83,7 @@ class ItemDetailController extends AsyncNotifier<ItemDetailState> {
 
     if (current == null) return;
 
-    state = AsyncData(
-      current.copyWith(isUpdatingFavorite: true),
-    );
+    state = AsyncData(current.copyWith(isUpdatingFavorite: true));
 
     try {
       if (current.isFavorite) {
@@ -87,9 +99,7 @@ class ItemDetailController extends AsyncNotifier<ItemDetailState> {
         ),
       );
     } catch (_) {
-      state = AsyncData(
-        current.copyWith(isUpdatingFavorite: false),
-      );
+      state = AsyncData(current.copyWith(isUpdatingFavorite: false));
 
       rethrow;
     }
@@ -100,15 +110,25 @@ class ItemDetailController extends AsyncNotifier<ItemDetailState> {
 
     try {
       final item = await _itemRepository.fetchItemDetail(itemId);
-      final reviews = await _itemRepository.fetchItemReviews(itemId);
-      final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
+
+      List<ReviewModel> reviews = <ReviewModel>[];
+      bool isFavorite = false;
+
+      try {
+        reviews = await _itemRepository.fetchItemReviews(itemId);
+      } catch (_) {
+        reviews = <ReviewModel>[];
+      }
+
+      try {
+        final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
+        isFavorite = favoriteIds.contains(itemId);
+      } catch (_) {
+        isFavorite = false;
+      }
 
       state = AsyncData(
-        ItemDetailState(
-          item: item,
-          reviews: reviews,
-          isFavorite: favoriteIds.contains(itemId),
-        ),
+        ItemDetailState(item: item, reviews: reviews, isFavorite: isFavorite),
       );
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
