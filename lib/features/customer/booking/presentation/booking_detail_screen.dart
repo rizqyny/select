@@ -16,6 +16,27 @@ class BookingDetailScreen extends ConsumerWidget {
 
   const BookingDetailScreen({super.key, required this.bookingId});
 
+  String _bottomStatusMessage(String status) {
+    switch (status) {
+      case 'pending_verification':
+        return 'Silakan verifikasi KTP terlebih dahulu.';
+      case 'rejected':
+        return 'Booking ditolak oleh admin.';
+      case 'cancelled':
+        return 'Booking sudah dibatalkan.';
+      case 'expired':
+        return 'Booking sudah kedaluwarsa.';
+      case 'approved':
+        return 'Booking sudah disetujui admin.';
+      case 'ongoing':
+        return 'Masa sewa sedang berlangsung.';
+      case 'completed':
+        return 'Booking sudah selesai.';
+      default:
+        return 'Booking belum berada pada status menunggu pembayaran.';
+    }
+  }
+
   Future<void> _createOrOpenPayment(
     BuildContext context,
     WidgetRef ref,
@@ -99,9 +120,10 @@ class BookingDetailScreen extends ConsumerWidget {
       ),
       bottomNavigationBar: detailState.maybeWhen(
         data: (state) {
+          final booking = state.booking;
           final payment = state.payment;
           final alreadyPaid =
-              payment?.isPaid == true || state.booking.status == 'paid';
+              payment?.isPaid == true || booking.status == 'paid';
 
           return SafeArea(
             child: Container(
@@ -119,7 +141,24 @@ class BookingDetailScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     )
-                  : AppButton(
+                  : booking.needsIdentityVerification
+                  ? AppButton(
+                      text: 'Verifikasi KTP Dulu',
+                      icon: Icons.badge_rounded,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.black,
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Fitur verifikasi KTP akan dibuat sebelum pembayaran.',
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : booking.canPay
+                  ? AppButton(
                       text: state.isCreatingPayment
                           ? 'Membuat Pembayaran...'
                           : 'Bayar Sekarang',
@@ -130,6 +169,14 @@ class BookingDetailScreen extends ConsumerWidget {
                       onPressed: state.isCreatingPayment
                           ? null
                           : () => _createOrOpenPayment(context, ref, state),
+                    )
+                  : Text(
+                      _bottomStatusMessage(booking.status),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
             ),
           );
@@ -265,10 +312,11 @@ class _PaymentSection extends StatelessWidget {
       title: 'Pembayaran',
       child: currentPayment == null
           ? const Text(
-              'Pembayaran belum dibuat.',
+              'Pembayaran belum dibuat. Pembayaran baru tersedia setelah verifikasi KTP disetujui admin.',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
+                height: 1.5,
               ),
             )
           : Column(

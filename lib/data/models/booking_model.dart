@@ -49,17 +49,22 @@ class BookingModel {
   }
 
   bool get canPay {
-    const blocked = {
-      'paid',
-      'approved',
-      'ongoing',
-      'completed',
-      'cancelled',
-      'rejected',
-      'expired',
-    };
+    return status == 'waiting_payment' || status == 'payment_pending';
+  }
 
-    return !blocked.contains(status);
+  bool get needsIdentityVerification {
+    return status == 'pending_verification';
+  }
+
+  bool get isRejectedOrCancelled {
+    return status == 'rejected' || status == 'cancelled' || status == 'expired';
+  }
+
+  bool get isPaidOrProcessed {
+    return status == 'paid' ||
+        status == 'approved' ||
+        status == 'ongoing' ||
+        status == 'completed';
   }
 
   static List<BookingItemSummary> _parseItems(Map<String, dynamic> json) {
