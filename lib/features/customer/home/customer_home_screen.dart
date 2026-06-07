@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/app_button.dart';
 import '../../auth/providers/auth_provider.dart';
-
-import '../../verification/models/verification_capture_result.dart';
 
 class CustomerHomeScreen extends ConsumerWidget {
   const CustomerHomeScreen({super.key});
@@ -19,94 +18,77 @@ class CustomerHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authControllerProvider).value;
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.value;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('SELECT'),
-        actions: [
-          IconButton(
-            onPressed: () => _logout(context, ref),
-            icon: const Icon(Icons.logout_rounded),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Container(
-          width: double.infinity,
+      appBar: AppBar(title: const Text('SELECT')),
+      body: SafeArea(
+        child: Padding(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(28),
-          ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              const CircleAvatar(
-                radius: 36,
-                backgroundColor: AppColors.primary,
-                child: Icon(
-                  Icons.person_rounded,
-                  color: AppColors.black,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                user?.fullName.isNotEmpty == true ? user!.fullName : 'Customer',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                user?.email ?? '-',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Login berhasil sebagai Customer.\nPart berikutnya kita buat Home, kategori, daftar item, dan detail produk.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary, height: 1.5),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 54,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await context
-                        .push<VerificationCaptureResult>(
-                          '/verification/capture',
-                          extra: const VerificationCaptureArgs(
-                            bookingId: 1,
-                            type: VerificationCaptureType.identity,
-                          ),
-                        );
-
-                    if (result == null || !context.mounted) return;
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Foto dan GPS berhasil: ${result.location.addressText}',
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.camera_alt_rounded),
-                  label: const Text(
-                    'Tes Kamera KTP + GPS',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: AppColors.border),
                 ),
+                child: Column(
+                  children: [
+                    const CircleAvatar(
+                      radius: 38,
+                      backgroundColor: AppColors.primary,
+                      child: Icon(
+                        Icons.person_rounded,
+                        color: AppColors.black,
+                        size: 38,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      user?.fullName.isNotEmpty == true
+                          ? user!.fullName
+                          : 'Customer',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      user?.email ?? '-',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Login berhasil sebagai Customer.\nSelanjutnya halaman ini akan dikembangkan menjadi home utama berisi kategori, daftar alat, search, dan bottom navigation.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              AppButton(
+                text: 'Logout',
+                icon: Icons.logout_rounded,
+                backgroundColor: AppColors.black,
+                foregroundColor: AppColors.white,
+                onPressed: () => _logout(context, ref),
               ),
             ],
           ),
