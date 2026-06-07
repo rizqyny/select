@@ -6,6 +6,11 @@ class ApiConstants {
   static const categories = '/categories';
   static const items = '/items';
 
+  static String itemDetail(int id) => '/items/$id';
+  static String itemReviews(int itemId) => '/items/$itemId/reviews';
+
+  static String favoriteByItem(int itemId) => '/favorites/$itemId';
+
   static const checkAvailability = '/bookings/check-availability';
   static const createBooking = '/bookings';
   static const myBookings = '/bookings/my';
