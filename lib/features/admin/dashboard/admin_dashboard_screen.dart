@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/app_button.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../maps/presentation/location_map_screen.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -18,85 +18,77 @@ class AdminDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authControllerProvider).value;
+    final authState = ref.watch(authControllerProvider);
+    final user = authState.value;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin SELECT'),
-        actions: [
-          IconButton(
-            onPressed: () => _logout(context, ref),
-            icon: const Icon(Icons.logout_rounded),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Container(
-          width: double.infinity,
+      appBar: AppBar(title: const Text('Admin SELECT')),
+      body: SafeArea(
+        child: Padding(
           padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(28),
-          ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              const CircleAvatar(
-                radius: 36,
-                backgroundColor: AppColors.black,
-                child: Icon(
-                  Icons.admin_panel_settings_rounded,
-                  color: AppColors.white,
-                  size: 36,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                user?.fullName.isNotEmpty == true ? user!.fullName : 'Admin',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                user?.email ?? '-',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Login berhasil sebagai Admin.\nPart berikutnya untuk admin akan dibuat dashboard, booking, item, dan verifikasi.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary, height: 1.5),
-              ),
-              const SizedBox(height: 18),
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 54,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    context.push(
-                      '/maps/location',
-                      extra: const LocationMapArgs(
-                        latitude: -8.164846,
-                        longitude: 113.715,
-                        title: 'Lokasi Verifikasi Customer',
-                        addressText: 'Jl. Kalimantan, Sumbersari, Jember',
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.map_rounded),
-                  label: const Text(
-                    'Tes Maps Lokasi Customer',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: AppColors.border),
                 ),
+                child: Column(
+                  children: [
+                    const CircleAvatar(
+                      radius: 38,
+                      backgroundColor: AppColors.black,
+                      child: Icon(
+                        Icons.admin_panel_settings_rounded,
+                        color: AppColors.white,
+                        size: 38,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      user?.fullName.isNotEmpty == true
+                          ? user!.fullName
+                          : 'Admin',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      user?.email ?? '-',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Login berhasil sebagai Admin.\nSelanjutnya dashboard admin akan digunakan untuk mengelola alat, booking, user, dan verifikasi.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              AppButton(
+                text: 'Logout',
+                icon: Icons.logout_rounded,
+                backgroundColor: AppColors.black,
+                foregroundColor: AppColors.white,
+                onPressed: () => _logout(context, ref),
               ),
             ],
           ),
