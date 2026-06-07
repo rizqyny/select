@@ -147,14 +147,20 @@ class BookingDetailScreen extends ConsumerWidget {
                       icon: Icons.badge_rounded,
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.black,
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Fitur verifikasi KTP akan dibuat sebelum pembayaran.',
-                            ),
-                          ),
+                      onPressed: () async {
+                        final result = await context.push<bool>(
+                          '/customer/verifications/identity/${booking.id}',
                         );
+
+                        if (result == true && context.mounted) {
+                          ref
+                              .read(
+                                bookingDetailControllerProvider(
+                                  booking.id,
+                                ).notifier,
+                              )
+                              .refresh();
+                        }
                       },
                     )
                   : booking.canPay
