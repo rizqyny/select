@@ -2,16 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/network/dio_client.dart';
 import '../../../../data/models/category_model.dart';
 import '../../../../data/models/item_model.dart';
+import '../../../../data/providers/repository_providers.dart';
 import '../../../../data/repositories/item_repository.dart';
 
 const Object _unset = Object();
-
-final itemRepositoryProvider = Provider<ItemRepository>((ref) {
-  return ItemRepository(dio: ref.watch(dioProvider));
-});
 
 final customerHomeControllerProvider =
     AsyncNotifierProvider<CustomerHomeController, CustomerHomeState>(
@@ -74,11 +70,12 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
   }
 
   Future<void> refresh() async {
+    final current = state.value ?? CustomerHomeState.initial();
+
     state = const AsyncLoading();
 
     try {
       final categories = await _repository.fetchCategories();
-      final current = state.value ?? CustomerHomeState.initial();
 
       final items = await _repository.fetchItems(
         search: current.searchQuery,

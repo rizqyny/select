@@ -4,6 +4,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/errors/api_exception.dart';
 import '../models/category_model.dart';
 import '../models/item_model.dart';
+import '../models/review_model.dart';
 
 class ItemRepository {
   final Dio _dio;
@@ -20,13 +21,7 @@ class ItemRepository {
         invalidMessage: 'Format data kategori tidak valid.',
       );
     } on DioException catch (error) {
-      final err = error.error;
-
-      if (err is ApiException) {
-        throw err;
-      }
-
-      throw ApiException.fromDio(error);
+      throw _handleDioError(error);
     }
   }
 
@@ -65,13 +60,44 @@ class ItemRepository {
         invalidMessage: 'Format data barang tidak valid.',
       );
     } on DioException catch (error) {
-      final err = error.error;
+      throw _handleDioError(error);
+    }
+  }
 
-      if (err is ApiException) {
-        throw err;
+  Future<ItemModel> fetchItemDetail(int itemId) async {
+    try {
+      final response = await _dio.get(ApiConstants.itemDetail(itemId));
+      final body = response.data;
+
+      if (body is Map<String, dynamic>) {
+        final data = body['data'];
+
+        if (data is Map<String, dynamic>) {
+          return ItemModel.fromJson(data);
+        }
+
+        if (body.containsKey('id')) {
+          return ItemModel.fromJson(body);
+        }
       }
 
-      throw ApiException.fromDio(error);
+      throw const ApiException(message: 'Format detail barang tidak valid.');
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    }
+  }
+
+  Future<List<ReviewModel>> fetchItemReviews(int itemId) async {
+    try {
+      final response = await _dio.get(ApiConstants.itemReviews(itemId));
+
+      return _parseListResponse<ReviewModel>(
+        response.data,
+        ReviewModel.fromJson,
+        invalidMessage: 'Format data review tidak valid.',
+      );
+    } on DioException catch (error) {
+      throw _handleDioError(error);
     }
   }
 
@@ -94,5 +120,15 @@ class ItemRepository {
         .whereType<Map<String, dynamic>>()
         .map<T>((json) => fromJson(json))
         .toList();
+  }
+
+  ApiException _handleDioError(DioException error) {
+    final err = error.error;
+
+    if (err is ApiException) {
+      return err;
+    }
+
+    return ApiException.fromDio(error);
   }
 }
