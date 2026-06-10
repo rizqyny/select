@@ -1,18 +1,26 @@
 import 'package:go_router/go_router.dart';
 
-import '../../features/admin/dashboard/admin_dashboard_screen.dart';
-import '../../features/auth/presentation/login_screen.dart';
-import '../../features/customer/home/customer_home_screen.dart';
-import '../../features/customer/items/presentation/item_detail_screen.dart';
-import '../../features/splash/splash_screen.dart';
-import '../../features/customer/booking/presentation/create_booking_screen.dart';
-import '../../features/customer/booking/presentation/booking_detail_screen.dart';
-import '../../features/customer/booking/presentation/customer_bookings_screen.dart';
-import '../../features/customer/booking/presentation/payment_webview_screen.dart';
-import '../../features/customer/verification/presentation/identity_verification_screen.dart';
+import '../../data/models/admin_booking_model.dart';
 import '../../data/models/admin_identity_verification_model.dart';
+
+import '../../features/admin/bookings/presentation/admin_booking_detail_screen.dart';
+import '../../features/admin/bookings/presentation/admin_bookings_screen.dart';
+import '../../features/admin/common/admin_shell_screen.dart';
+import '../../features/admin/dashboard/admin_dashboard_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verification_detail_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verifications_screen.dart';
+
+import '../../features/auth/presentation/login_screen.dart';
+
+import '../../features/customer/booking/presentation/booking_detail_screen.dart';
+import '../../features/customer/booking/presentation/create_booking_screen.dart';
+import '../../features/customer/booking/presentation/customer_bookings_screen.dart';
+import '../../features/customer/booking/presentation/payment_webview_screen.dart';
+import '../../features/customer/home/customer_home_screen.dart';
+import '../../features/customer/items/presentation/item_detail_screen.dart';
+import '../../features/customer/verification/presentation/identity_verification_screen.dart';
+
+import '../../features/splash/splash_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -22,11 +30,16 @@ final appRouter = GoRouter(
       name: 'splash',
       builder: (context, state) => const SplashScreen(),
     ),
+
     GoRoute(
       path: '/login',
       name: 'login',
       builder: (context, state) => const LoginScreen(),
     ),
+
+    // =========================
+    // CUSTOMER ROUTES
+    // =========================
     GoRoute(
       path: '/customer/home',
       name: 'customer-home',
@@ -90,15 +103,48 @@ final appRouter = GoRouter(
         return IdentityVerificationScreen(bookingId: bookingId);
       },
     ),
-    GoRoute(
-      path: '/admin/dashboard',
-      name: 'admin-dashboard',
-      builder: (context, state) => const AdminDashboardScreen(),
+
+    // =========================
+    // ADMIN MAIN ROUTES WITH NAVBAR
+    // =========================
+    ShellRoute(
+      builder: (context, state, child) {
+        return AdminShellScreen(location: state.uri.path, child: child);
+      },
+      routes: [
+        GoRoute(
+          path: '/admin/dashboard',
+          name: 'admin-dashboard',
+          builder: (context, state) => const AdminDashboardScreen(),
+        ),
+        GoRoute(
+          path: '/admin/bookings',
+          name: 'admin-bookings',
+          builder: (context, state) => const AdminBookingsScreen(),
+        ),
+        GoRoute(
+          path: '/admin/verifications/identity',
+          name: 'admin-identity-verifications',
+          builder: (context, state) => const AdminIdentityVerificationsScreen(),
+        ),
+      ],
     ),
+
+    // =========================
+    // ADMIN DETAIL ROUTES
+    // =========================
     GoRoute(
-      path: '/admin/verifications/identity',
-      name: 'admin-identity-verifications',
-      builder: (context, state) => const AdminIdentityVerificationsScreen(),
+      path: '/admin/bookings/:id',
+      name: 'admin-booking-detail',
+      builder: (context, state) {
+        final booking = state.extra as AdminBookingModel?;
+
+        if (booking == null) {
+          return const AdminBookingsScreen();
+        }
+
+        return AdminBookingDetailScreen(booking: booking);
+      },
     ),
     GoRoute(
       path: '/admin/verifications/identity/:id',
