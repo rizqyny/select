@@ -42,4 +42,12 @@ class ApiConstants {
 
   static String adminRejectIdentityVerification(int id) =>
       '/admin/verifications/identity/$id/reject';
+
+  static String adminApproveBooking(int id) => '/admin/bookings/$id/approve';
+
+  static String adminRejectBooking(int id) => '/admin/bookings/$id/reject';
+
+  static String adminStartBooking(int id) => '/admin/bookings/$id/start';
+
+  static String adminCompleteBooking(int id) => '/admin/bookings/$id/complete';
 }
