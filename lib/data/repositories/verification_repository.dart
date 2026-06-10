@@ -20,35 +20,20 @@ class VerificationRepository {
     required DateTime takenAt,
   }) async {
     try {
-      final payload = {
-        'booking_id': bookingId,
-        'document_type': 'ktp',
-        'ktp_name': ktpName.trim(),
-        'ktp_number_masked': ktpNumberMasked.trim(),
-        'photo_path': photoPath,
-        'latitude': latitude,
-        'longitude': longitude,
-        'address_text': addressText,
-        'taken_at': takenAt.toUtc().toIso8601String(),
-
-        // Cadangan kalau backend memakai nama field berbeda
-        'document_name': ktpName.trim(),
-        'document_number': ktpNumberMasked.trim(),
-        'document_photo_path': photoPath,
-        'location_latitude': latitude,
-        'location_longitude': longitude,
-        'location_address': addressText,
-      };
-
-      print('IDENTITY VERIFY PAYLOAD: $payload');
-
       final response = await _dio.post(
         ApiConstants.identityVerification,
-        data: payload,
+        data: {
+          'booking_id': bookingId,
+          'document_type': 'ktp',
+          'ktp_name': ktpName.trim(),
+          'ktp_number_masked': ktpNumberMasked.trim(),
+          'photo_path': photoPath,
+          'latitude': latitude,
+          'longitude': longitude,
+          'address_text': addressText,
+          'taken_at': takenAt.toUtc().toIso8601String(),
+        },
       );
-
-      print('IDENTITY VERIFY RESPONSE STATUS: ${response.statusCode}');
-      print('IDENTITY VERIFY RESPONSE DATA: ${response.data}');
 
       final body = response.data;
 
@@ -64,16 +49,14 @@ class VerificationRepository {
         }
       }
 
-      throw Exception('Format response verifikasi identitas tidak valid.');
+      throw const ApiException(
+        message: 'Format response verifikasi identitas tidak valid.',
+      );
     } on DioException catch (error) {
-      print('IDENTITY VERIFY DIO ERROR STATUS: ${error.response?.statusCode}');
-      print('IDENTITY VERIFY DIO ERROR DATA: ${error.response?.data}');
-
       throw Exception(
         'Gagal submit verifikasi KTP: ${_extractErrorMessage(error)}',
       );
     } catch (error) {
-      print('IDENTITY VERIFY ERROR: $error');
       throw Exception('Gagal submit verifikasi KTP: $error');
     }
   }
