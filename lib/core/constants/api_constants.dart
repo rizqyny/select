@@ -53,5 +53,5 @@ class ApiConstants {
 
   static String adminItemDetail(int id) => '/items/$id';
 
-  static String adminDeleteItem(int id) => '/items/$id';
+  static String adminDeleteItem(int id) => '/admin/items/$id';
 }
