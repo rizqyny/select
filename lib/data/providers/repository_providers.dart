@@ -10,7 +10,6 @@ import '../repositories/verification_repository.dart';
 import '../repositories/admin_verification_repository.dart';
 import '../repositories/admin_booking_repository.dart';
 import '../repositories/admin_item_repository.dart';
-import '../repositories/admin_category_repository.dart';
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(dio: ref.watch(dioProvider));
@@ -55,10 +54,4 @@ final storageRepositoryProvider = Provider<StorageRepository>((ref) {
 
 final verificationRepositoryProvider = Provider<VerificationRepository>((ref) {
   return VerificationRepository(dio: ref.watch(dioProvider));
-});
-
-final adminCategoryRepositoryProvider = Provider<AdminCategoryRepository>((
-  ref,
-) {
-  return AdminCategoryRepository(dio: ref.watch(dioProvider));
 });

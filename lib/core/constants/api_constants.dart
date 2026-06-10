@@ -60,12 +60,4 @@ class ApiConstants {
   static String adminDeleteItem(int id) => '/admin/items/$id';
 
   static String adminItemImages(int itemId) => '/admin/items/$itemId/images';
-
-  static const adminCategories = '/categories';
-
-  static const adminCreateCategory = '/admin/categories';
-
-  static String adminUpdateCategory(int id) => '/admin/categories/$id';
-
-  static String adminDeleteCategory(int id) => '/admin/categories/$id';
 }

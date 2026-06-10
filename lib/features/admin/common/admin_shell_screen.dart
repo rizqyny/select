@@ -26,10 +26,6 @@ class AdminShellScreen extends StatelessWidget {
       return 3;
     }
 
-    if (location.startsWith('/admin/categories')) {
-      return 4;
-    }
-
     return 0;
   }
 
@@ -46,9 +42,6 @@ class AdminShellScreen extends StatelessWidget {
         break;
       case 3:
         context.go('/admin/items');
-        break;
-      case 4:
-        context.go('/admin/categories');
         break;
     }
   }
@@ -84,11 +77,6 @@ class AdminShellScreen extends StatelessWidget {
             icon: Icon(Icons.devices_other_outlined),
             selectedIcon: Icon(Icons.devices_other_rounded),
             label: 'Barang',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.category_outlined),
-            selectedIcon: Icon(Icons.category_rounded),
-            label: 'Kategori',
           ),
         ],
       ),
