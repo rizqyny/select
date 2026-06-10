@@ -1,17 +1,14 @@
 import 'package:go_router/go_router.dart';
-
 import '../../data/models/admin_booking_model.dart';
 import '../../data/models/admin_identity_verification_model.dart';
-
 import '../../features/admin/bookings/presentation/admin_booking_detail_screen.dart';
 import '../../features/admin/bookings/presentation/admin_bookings_screen.dart';
 import '../../features/admin/common/admin_shell_screen.dart';
 import '../../features/admin/dashboard/admin_dashboard_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verification_detail_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verifications_screen.dart';
-
+import '../../features/admin/items/presentation/admin_items_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
-
 import '../../features/customer/booking/presentation/booking_detail_screen.dart';
 import '../../features/customer/booking/presentation/create_booking_screen.dart';
 import '../../features/customer/booking/presentation/customer_bookings_screen.dart';
@@ -126,6 +123,11 @@ final appRouter = GoRouter(
           path: '/admin/verifications/identity',
           name: 'admin-identity-verifications',
           builder: (context, state) => const AdminIdentityVerificationsScreen(),
+        ),
+        GoRoute(
+          path: '/admin/items',
+          name: 'admin-items',
+          builder: (context, state) => const AdminItemsScreen(),
         ),
       ],
     ),
