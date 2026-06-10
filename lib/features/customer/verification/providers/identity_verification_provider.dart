@@ -9,6 +9,7 @@ import '../../../../data/models/identity_verification_model.dart';
 import '../../../../data/providers/repository_providers.dart';
 import '../../../../data/repositories/storage_repository.dart';
 import '../../../../data/repositories/verification_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 const Object _unset = Object();
 
@@ -206,6 +207,8 @@ class IdentityVerificationController
         addressText: location.addressText,
         takenAt: location.takenAt,
       );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('identity_verification_submitted_$bookingId', true);
 
       final latest = state.value ?? current;
 

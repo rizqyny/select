@@ -106,7 +106,7 @@ class BookingDetailScreen extends ConsumerWidget {
               children: [
                 _BookingInfoCard(booking: state.booking),
                 const SizedBox(height: 18),
-                _ItemsSection(items: state.booking.items),
+                _ItemsSection(booking: state.booking),
                 const SizedBox(height: 18),
                 _PaymentSection(payment: state.payment),
                 if (state.errorMessage != null) ...[
@@ -142,27 +142,36 @@ class BookingDetailScreen extends ConsumerWidget {
                       ),
                     )
                   : booking.needsIdentityVerification
-                  ? AppButton(
-                      text: 'Verifikasi KTP Dulu',
-                      icon: Icons.badge_rounded,
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.black,
-                      onPressed: () async {
-                        final result = await context.push<bool>(
-                          '/customer/verifications/identity/${booking.id}',
-                        );
+                  ? state.hasSubmittedIdentityVerification
+                        ? const Text(
+                            'Verifikasi KTP sudah dikirim. Menunggu persetujuan admin.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          )
+                        : AppButton(
+                            text: 'Verifikasi KTP Dulu',
+                            icon: Icons.badge_rounded,
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.black,
+                            onPressed: () async {
+                              final result = await context.push<bool>(
+                                '/customer/verifications/identity/${booking.id}',
+                              );
 
-                        if (result == true && context.mounted) {
-                          ref
-                              .read(
-                                bookingDetailControllerProvider(
-                                  booking.id,
-                                ).notifier,
-                              )
-                              .refresh();
-                        }
-                      },
-                    )
+                              if (result == true && context.mounted) {
+                                await ref
+                                    .read(
+                                      bookingDetailControllerProvider(
+                                        booking.id,
+                                      ).notifier,
+                                    )
+                                    .markIdentityVerificationSubmitted();
+                              }
+                            },
+                          )
                   : booking.canPay
                   ? AppButton(
                       text: state.isCreatingPayment
@@ -248,12 +257,14 @@ class _BookingInfoCard extends StatelessWidget {
 }
 
 class _ItemsSection extends StatelessWidget {
-  final List<BookingItemSummary> items;
+  final BookingModel booking;
 
-  const _ItemsSection({required this.items});
+  const _ItemsSection({required this.booking});
 
   @override
   Widget build(BuildContext context) {
+    final items = booking.items;
+
     return _SectionCard(
       title: 'Barang Disewa',
       child: items.isEmpty
@@ -266,6 +277,10 @@ class _ItemsSection extends StatelessWidget {
             )
           : Column(
               children: items.map((item) {
+                final displayDailyPrice = item.dailyPrice > 0
+                    ? item.dailyPrice
+                    : booking.fallbackDailyPricePerItem;
+
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(14),
@@ -290,7 +305,7 @@ class _ItemsSection extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        CurrencyFormatter.dailyPrice(item.dailyPrice),
+                        CurrencyFormatter.dailyPrice(displayDailyPrice),
                         style: const TextStyle(
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w700,

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../data/models/booking_model.dart';
 import '../../../../data/models/payment_model.dart';
@@ -12,12 +13,14 @@ class BookingDetailState {
   final BookingModel booking;
   final PaymentModel? payment;
   final bool isCreatingPayment;
+  final bool hasSubmittedIdentityVerification;
   final String? errorMessage;
 
   const BookingDetailState({
     required this.booking,
     this.payment,
     this.isCreatingPayment = false,
+    this.hasSubmittedIdentityVerification = false,
     this.errorMessage,
   });
 
@@ -25,6 +28,7 @@ class BookingDetailState {
     BookingModel? booking,
     Object? payment = _unset,
     bool? isCreatingPayment,
+    bool? hasSubmittedIdentityVerification,
     Object? errorMessage = _unset,
   }) {
     return BookingDetailState(
@@ -33,6 +37,9 @@ class BookingDetailState {
           ? this.payment
           : payment as PaymentModel?,
       isCreatingPayment: isCreatingPayment ?? this.isCreatingPayment,
+      hasSubmittedIdentityVerification:
+          hasSubmittedIdentityVerification ??
+          this.hasSubmittedIdentityVerification,
       errorMessage: identical(errorMessage, _unset)
           ? this.errorMessage
           : errorMessage as String?,
@@ -60,29 +67,72 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
   PaymentRepository get _paymentRepository =>
       ref.read(paymentRepositoryProvider);
 
+  String get _localIdentityKey => 'identity_verification_submitted_$bookingId';
+
   @override
   FutureOr<BookingDetailState> build() async {
     final booking = await _bookingRepository.fetchBookingDetail(bookingId);
     final payment = await _paymentRepository.fetchPaymentByBooking(bookingId);
+    final localSubmitted = await _getLocalIdentitySubmitted();
 
-    return BookingDetailState(booking: booking, payment: payment);
+    return BookingDetailState(
+      booking: booking,
+      payment: payment,
+      hasSubmittedIdentityVerification:
+          localSubmitted || booking.hasIdentityVerification,
+    );
   }
 
   Future<void> refresh() async {
+    final current = state.value;
+
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
       final booking = await _bookingRepository.fetchBookingDetail(bookingId);
       final payment = await _paymentRepository.fetchPaymentByBooking(bookingId);
+      final localSubmitted = await _getLocalIdentitySubmitted();
 
-      return BookingDetailState(booking: booking, payment: payment);
+      return BookingDetailState(
+        booking: booking,
+        payment: payment,
+        hasSubmittedIdentityVerification:
+            localSubmitted ||
+            booking.hasIdentityVerification ||
+            (current?.hasSubmittedIdentityVerification ?? false),
+      );
     });
+  }
+
+  Future<void> markIdentityVerificationSubmitted() async {
+    final current = state.value;
+
+    await _setLocalIdentitySubmitted(true);
+
+    if (current == null) return;
+
+    state = AsyncData(
+      current.copyWith(
+        hasSubmittedIdentityVerification: true,
+        errorMessage: null,
+      ),
+    );
   }
 
   Future<PaymentModel?> createPayment() async {
     final current = state.value;
 
     if (current == null) return null;
+
+    if (!current.booking.canPay) {
+      state = AsyncData(
+        current.copyWith(
+          errorMessage:
+              'Pembayaran baru bisa dilakukan setelah verifikasi KTP disetujui admin.',
+        ),
+      );
+      return null;
+    }
 
     state = AsyncData(
       current.copyWith(isCreatingPayment: true, errorMessage: null),
@@ -116,5 +166,15 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
 
       return null;
     }
+  }
+
+  Future<bool> _getLocalIdentitySubmitted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_localIdentityKey) ?? false;
+  }
+
+  Future<void> _setLocalIdentitySubmitted(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_localIdentityKey, value);
   }
 }
