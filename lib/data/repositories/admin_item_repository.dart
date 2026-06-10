@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/errors/api_exception.dart';
 import '../models/admin_item_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminItemRepository {
   final Dio _dio;
@@ -146,32 +147,20 @@ class AdminItemRepository {
 
     if (cleanPath.isEmpty) return;
 
-    final payloads = <Map<String, dynamic>>[
-      {'image_path': cleanPath, 'is_primary': true},
-      {'storage_path': cleanPath, 'is_primary': true},
-      {'path': cleanPath, 'is_primary': true},
-      {'bucket': 'item-images', 'path': cleanPath, 'is_primary': true},
-    ];
+    try {
+      final supabase = Supabase.instance.client;
 
-    DioException? lastError;
-
-    for (final payload in payloads) {
-      try {
-        await _dio.post(ApiConstants.adminItemImages(itemId), data: payload);
-        return;
-      } on DioException catch (error) {
-        lastError = error;
-
-        final statusCode = error.response?.statusCode;
-
-        if (statusCode != 400 && statusCode != 422) {
-          rethrow;
-        }
-      }
-    }
-
-    if (lastError != null) {
-      throw _handleDioError(lastError);
+      await supabase.from('item_images').insert({
+        'item_id': itemId,
+        'storage_path': cleanPath,
+        'is_primary': true,
+      });
+    } on PostgrestException catch (error) {
+      throw Exception(
+        'Gagal menyimpan gambar ke tabel item_images: ${error.message}',
+      );
+    } catch (error) {
+      throw Exception('Gagal menyimpan gambar ke tabel item_images: $error');
     }
   }
 
