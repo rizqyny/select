@@ -9,6 +9,7 @@ class AdminItemModel {
   final String status;
   final String imageUrl;
   final DateTime? createdAt;
+  final int categoryId;
 
   const AdminItemModel({
     required this.id,
@@ -21,6 +22,7 @@ class AdminItemModel {
     required this.status,
     required this.imageUrl,
     required this.createdAt,
+    required this.categoryId,
   });
 
   factory AdminItemModel.fromJson(Map<String, dynamic> json) {
@@ -47,6 +49,10 @@ class AdminItemModel {
       status: json['status']?.toString() ?? '-',
       imageUrl: _parseImageUrl(json, primaryImage),
       createdAt: _toDateTime(json['created_at']),
+
+      categoryId: category is Map<String, dynamic>
+          ? _toInt(category['id'] ?? json['category_id'])
+          : _toInt(json['category_id']),
     );
   }
 
