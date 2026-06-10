@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/constants/api_constants.dart';
 import '../../core/errors/api_exception.dart';
@@ -40,10 +41,15 @@ class StorageRepository {
       );
 
       return signedUrl.path;
-    } on DioException catch (error) {
-      throw Exception('Gagal upload foto KTP: ${_extractErrorMessage(error)}');
     } catch (error) {
-      throw Exception('Gagal upload foto KTP: $error');
+      // Fallback jika backend /storage/signed-upload-url error 500.
+      // File tetap diupload langsung ke Supabase Storage.
+      return _uploadDirectlyToSupabase(
+        file: file,
+        bucket: bucket,
+        path: path,
+        contentType: contentType,
+      );
     }
   }
 
@@ -80,6 +86,29 @@ class StorageRepository {
       );
     } catch (error) {
       throw Exception('Gagal membuat signed upload URL: $error');
+    }
+  }
+
+  Future<String> _uploadDirectlyToSupabase({
+    required File file,
+    required String bucket,
+    required String path,
+    required String contentType,
+  }) async {
+    try {
+      await Supabase.instance.client.storage
+          .from(bucket)
+          .upload(
+            path,
+            file,
+            fileOptions: FileOptions(contentType: contentType, upsert: false),
+          );
+
+      return path;
+    } on StorageException catch (error) {
+      throw Exception('Gagal upload foto KTP ke Supabase: ${error.message}');
+    } catch (error) {
+      throw Exception('Gagal upload foto KTP ke Supabase: $error');
     }
   }
 
