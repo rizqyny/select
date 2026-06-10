@@ -22,6 +22,10 @@ class AdminShellScreen extends StatelessWidget {
       return 2;
     }
 
+    if (location.startsWith('/admin/items')) {
+      return 3;
+    }
+
     return 0;
   }
 
@@ -35,6 +39,9 @@ class AdminShellScreen extends StatelessWidget {
         break;
       case 2:
         context.go('/admin/verifications/identity');
+        break;
+      case 3:
+        context.go('/admin/items');
         break;
     }
   }
@@ -65,6 +72,11 @@ class AdminShellScreen extends StatelessWidget {
             icon: Icon(Icons.verified_user_outlined),
             selectedIcon: Icon(Icons.verified_user_rounded),
             label: 'KTP',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.devices_other_outlined),
+            selectedIcon: Icon(Icons.devices_other_rounded),
+            label: 'Barang',
           ),
         ],
       ),
