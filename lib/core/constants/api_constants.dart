@@ -34,7 +34,7 @@ class ApiConstants {
   static const adminDashboard = '/admin/dashboard';
   static const adminBookings = '/admin/bookings';
   static const adminUsers = '/admin/users';
-  static const adminItems = '/admin/items';
+  static const adminItems = '/items';
   static const adminIdentityVerifications = '/admin/verifications/identity';
 
   static String adminApproveIdentityVerification(int id) =>
@@ -51,7 +51,7 @@ class ApiConstants {
 
   static String adminCompleteBooking(int id) => '/admin/bookings/$id/complete';
 
-  static String adminItemDetail(int id) => '/admin/items/$id';
+  static String adminItemDetail(int id) => '/items/$id';
 
-  static String adminDeleteItem(int id) => '/admin/items/$id';
+  static String adminDeleteItem(int id) => '/items/$id';
 }
