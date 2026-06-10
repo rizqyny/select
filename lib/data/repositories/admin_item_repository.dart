@@ -42,12 +42,144 @@ class AdminItemRepository {
     }
   }
 
+  Future<AdminItemModel> createItem({
+    required String name,
+    required String brand,
+    required int categoryId,
+    required String description,
+    required num dailyPrice,
+    required num depositAmount,
+    required String status,
+    String? imagePath,
+  }) async {
+    return _sendItemPayload(
+      endpoint: ApiConstants.adminCreateItem,
+      method: 'POST',
+      name: name,
+      brand: brand,
+      categoryId: categoryId,
+      description: description,
+      dailyPrice: dailyPrice,
+      depositAmount: depositAmount,
+      status: status,
+      imagePath: imagePath,
+    );
+  }
+
+  Future<AdminItemModel> updateItem({
+    required int id,
+    required String name,
+    required String brand,
+    required int categoryId,
+    required String description,
+    required num dailyPrice,
+    required num depositAmount,
+    required String status,
+    String? imagePath,
+  }) async {
+    return _sendItemPayload(
+      endpoint: ApiConstants.adminUpdateItem(id),
+      method: 'PATCH',
+      name: name,
+      brand: brand,
+      categoryId: categoryId,
+      description: description,
+      dailyPrice: dailyPrice,
+      depositAmount: depositAmount,
+      status: status,
+      imagePath: imagePath,
+    );
+  }
+
   Future<void> deleteItem(int id) async {
     try {
       await _dio.delete(ApiConstants.adminDeleteItem(id));
     } on DioException catch (error) {
       throw _handleDioError(error);
     }
+  }
+
+  Future<AdminItemModel> _sendItemPayload({
+    required String endpoint,
+    required String method,
+    required String name,
+    required String brand,
+    required int categoryId,
+    required String description,
+    required num dailyPrice,
+    required num depositAmount,
+    required String status,
+    String? imagePath,
+  }) async {
+    final basePayload = <String, dynamic>{
+      'name': name.trim(),
+      'brand': brand.trim(),
+      'category_id': categoryId,
+      'description': description.trim(),
+      'daily_price': dailyPrice,
+      'deposit_amount': depositAmount,
+      'status': status,
+    };
+
+    final payloads = <Map<String, dynamic>>[];
+
+    if (imagePath != null && imagePath.trim().isNotEmpty) {
+      payloads.add({...basePayload, 'image_path': imagePath});
+
+      payloads.add({...basePayload, 'primary_image_path': imagePath});
+
+      payloads.add({
+        ...basePayload,
+        'images': [
+          {'image_path': imagePath, 'is_primary': true},
+        ],
+      });
+    }
+
+    payloads.add(basePayload);
+
+    DioException? lastValidationError;
+
+    for (final payload in payloads) {
+      try {
+        final response = method == 'POST'
+            ? await _dio.post(endpoint, data: payload)
+            : await _dio.patch(endpoint, data: payload);
+
+        return _extractItem(response.data);
+      } on DioException catch (error) {
+        final statusCode = error.response?.statusCode;
+
+        if (statusCode == 400 || statusCode == 422) {
+          lastValidationError = error;
+          continue;
+        }
+
+        throw _handleDioError(error);
+      }
+    }
+
+    if (lastValidationError != null) {
+      throw _handleDioError(lastValidationError);
+    }
+
+    throw const ApiException(message: 'Gagal menyimpan data barang.');
+  }
+
+  AdminItemModel _extractItem(Object? body) {
+    if (body is Map<String, dynamic>) {
+      final data = body['data'];
+
+      if (data is Map<String, dynamic>) {
+        return AdminItemModel.fromJson(data);
+      }
+
+      if (body.containsKey('id')) {
+        return AdminItemModel.fromJson(body);
+      }
+    }
+
+    throw const ApiException(message: 'Format response item tidak valid.');
   }
 
   List<dynamic> _extractList(Object? body) {

@@ -10,7 +10,6 @@ import '../repositories/verification_repository.dart';
 import '../repositories/admin_verification_repository.dart';
 import '../repositories/admin_booking_repository.dart';
 import '../repositories/admin_item_repository.dart';
-import '../repositories/admin_item_repository.dart';
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(dio: ref.watch(dioProvider));
