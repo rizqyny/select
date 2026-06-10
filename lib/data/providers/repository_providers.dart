@@ -8,6 +8,7 @@ import '../repositories/payment_repository.dart';
 import '../repositories/storage_repository.dart';
 import '../repositories/verification_repository.dart';
 import '../repositories/admin_verification_repository.dart';
+import '../repositories/admin_booking_repository.dart';
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(dio: ref.watch(dioProvider));
@@ -29,6 +30,10 @@ final adminVerificationRepositoryProvider =
     Provider<AdminVerificationRepository>((ref) {
       return AdminVerificationRepository(dio: ref.watch(dioProvider));
     });
+
+final adminBookingRepositoryProvider = Provider<AdminBookingRepository>((ref) {
+  return AdminBookingRepository(dio: ref.watch(dioProvider));
+});
 
 final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
   return BookingRepository(dio: ref.watch(dioProvider));
