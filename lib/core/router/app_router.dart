@@ -16,6 +16,8 @@ import '../../features/customer/booking/presentation/payment_webview_screen.dart
 import '../../features/customer/home/customer_home_screen.dart';
 import '../../features/customer/items/presentation/item_detail_screen.dart';
 import '../../features/customer/verification/presentation/identity_verification_screen.dart';
+import '../../data/models/admin_item_model.dart';
+import '../../features/admin/items/presentation/admin_item_form_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -128,6 +130,26 @@ final appRouter = GoRouter(
           path: '/admin/items',
           name: 'admin-items',
           builder: (context, state) => const AdminItemsScreen(),
+        ),
+        GoRoute(
+          path: '/admin/items/create',
+          name: 'admin-create-item',
+          builder: (context, state) {
+            return const AdminItemFormScreen();
+          },
+        ),
+        GoRoute(
+          path: '/admin/items/:id/edit',
+          name: 'admin-edit-item',
+          builder: (context, state) {
+            final item = state.extra as AdminItemModel?;
+
+            if (item == null) {
+              return const AdminItemFormScreen();
+            }
+
+            return AdminItemFormScreen(item: item);
+          },
         ),
       ],
     ),

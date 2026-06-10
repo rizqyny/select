@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -89,14 +90,12 @@ class _AdminItemsScreenState extends ConsumerState<AdminItemsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.black,
         foregroundColor: AppColors.white,
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Form tambah barang akan dibuat di part berikutnya.',
-              ),
-            ),
-          );
+        onPressed: () async {
+          final result = await context.push<bool>('/admin/items/create');
+
+          if (result == true && mounted) {
+            ref.read(adminItemsControllerProvider.notifier).refresh();
+          }
         },
         icon: const Icon(Icons.add_rounded),
         label: const Text(
@@ -200,14 +199,17 @@ class _AdminItemsScreenState extends ConsumerState<AdminItemsScreen> {
                         item: item,
                         isDeleting: isDeleting,
                         onDelete: () => _confirmDelete(item),
-                        onEdit: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Form edit barang akan dibuat di part berikutnya.',
-                              ),
-                            ),
+                        onEdit: () async {
+                          final result = await context.push<bool>(
+                            '/admin/items/${item.id}/edit',
+                            extra: item,
                           );
+
+                          if (result == true && mounted) {
+                            ref
+                                .read(adminItemsControllerProvider.notifier)
+                                .refresh();
+                          }
                         },
                       ),
                     );
