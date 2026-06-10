@@ -41,15 +41,54 @@ class StorageRepository {
       );
 
       return signedUrl.path;
-    } catch (error) {
-      // Fallback jika backend /storage/signed-upload-url error 500.
-      // File tetap diupload langsung ke Supabase Storage.
+    } catch (_) {
       return _uploadDirectlyToSupabase(
         file: file,
         bucket: bucket,
         path: path,
         contentType: contentType,
       );
+    }
+  }
+
+  Future<String> createSignedReadUrl({
+    required String bucket,
+    required String path,
+    int expiresIn = 3600,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.signedReadUrl,
+        data: {'bucket': bucket, 'path': path, 'expires_in': expiresIn},
+      );
+
+      final body = response.data;
+
+      if (body is Map<String, dynamic>) {
+        final data = body['data'];
+
+        if (data is Map<String, dynamic>) {
+          return data['signed_url']?.toString() ??
+              data['signedUrl']?.toString() ??
+              data['url']?.toString() ??
+              '';
+        }
+
+        return body['signed_url']?.toString() ??
+            body['signedUrl']?.toString() ??
+            body['url']?.toString() ??
+            '';
+      }
+
+      return '';
+    } catch (_) {
+      try {
+        return Supabase.instance.client.storage
+            .from(bucket)
+            .createSignedUrl(path, expiresIn);
+      } catch (error) {
+        throw Exception('Gagal membuat URL baca file: $error');
+      }
     }
   }
 
