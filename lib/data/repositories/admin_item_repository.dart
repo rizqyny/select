@@ -4,6 +4,7 @@ import '../../core/constants/api_constants.dart';
 import '../../core/errors/api_exception.dart';
 import '../models/admin_item_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminItemRepository {
   final Dio _dio;
@@ -150,9 +151,25 @@ class AdminItemRepository {
     try {
       final supabase = Supabase.instance.client;
 
+      final publicUrl = supabase.storage
+          .from('item-images')
+          .getPublicUrl(cleanPath);
+
+      // Nonaktifkan gambar primary lama jika ada.
+      try {
+        await supabase
+            .from('item_images')
+            .update({'is_primary': false})
+            .eq('item_id', itemId);
+      } catch (_) {
+        // Jika update primary lama gagal karena RLS, proses insert gambar baru tetap lanjut.
+      }
+
       await supabase.from('item_images').insert({
         'item_id': itemId,
+        'storage_bucket': 'item-images',
         'storage_path': cleanPath,
+        'public_url': publicUrl,
         'is_primary': true,
       });
     } on PostgrestException catch (error) {
