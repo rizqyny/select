@@ -10,6 +10,9 @@ import '../../features/customer/booking/presentation/booking_detail_screen.dart'
 import '../../features/customer/booking/presentation/customer_bookings_screen.dart';
 import '../../features/customer/booking/presentation/payment_webview_screen.dart';
 import '../../features/customer/verification/presentation/identity_verification_screen.dart';
+import '../../data/models/admin_identity_verification_model.dart';
+import '../../features/admin/verifications/presentation/admin_identity_verification_detail_screen.dart';
+import '../../features/admin/verifications/presentation/admin_identity_verifications_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -91,6 +94,26 @@ final appRouter = GoRouter(
       path: '/admin/dashboard',
       name: 'admin-dashboard',
       builder: (context, state) => const AdminDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/admin/verifications/identity',
+      name: 'admin-identity-verifications',
+      builder: (context, state) => const AdminIdentityVerificationsScreen(),
+    ),
+    GoRoute(
+      path: '/admin/verifications/identity/:id',
+      name: 'admin-identity-verification-detail',
+      builder: (context, state) {
+        final verification = state.extra as AdminIdentityVerificationModel?;
+
+        if (verification == null) {
+          return const AdminIdentityVerificationsScreen();
+        }
+
+        return AdminIdentityVerificationDetailScreen(
+          verification: verification,
+        );
+      },
     ),
   ],
 );

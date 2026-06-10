@@ -84,6 +84,17 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               AppButton(
+                text: 'Verifikasi KTP Customer',
+                icon: Icons.verified_user_rounded,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.black,
+                onPressed: () {
+                  context.push('/admin/verifications/identity');
+                },
+              ),
+              const SizedBox(height: 14),
+              const SizedBox(height: 24),
+              AppButton(
                 text: 'Logout',
                 icon: Icons.logout_rounded,
                 backgroundColor: AppColors.black,
