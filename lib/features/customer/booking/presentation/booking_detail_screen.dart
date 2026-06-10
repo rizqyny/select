@@ -42,6 +42,18 @@ class BookingDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     BookingDetailState state,
   ) async {
+    if (!state.booking.canPay) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Pembayaran baru bisa dilakukan setelah verifikasi KTP disetujui admin.',
+          ),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
     PaymentModel? payment = state.payment;
 
     if (payment == null || payment.redirectUrl == null) {
@@ -54,7 +66,7 @@ class BookingDetailScreen extends ConsumerWidget {
 
     final redirectUrl = payment.redirectUrl;
 
-    if (redirectUrl == null || redirectUrl.isEmpty) {
+    if (redirectUrl == null || redirectUrl.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('URL pembayaran tidak ditemukan.'),
@@ -72,7 +84,15 @@ class BookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (result == true) {
-      ref.read(bookingDetailControllerProvider(bookingId).notifier).refresh();
+      await ref
+          .read(bookingDetailControllerProvider(bookingId).notifier)
+          .refresh();
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Status pembayaran diperbarui.')),
+      );
     }
   }
 
@@ -108,7 +128,7 @@ class BookingDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 18),
                 _ItemsSection(booking: state.booking),
                 const SizedBox(height: 18),
-                _PaymentSection(payment: state.payment),
+                _PaymentSection(booking: state.booking, payment: state.payment),
                 if (state.errorMessage != null) ...[
                   const SizedBox(height: 18),
                   _MessageBox(message: state.errorMessage!),
@@ -321,20 +341,33 @@ class _ItemsSection extends StatelessWidget {
 }
 
 class _PaymentSection extends StatelessWidget {
+  final BookingModel booking;
   final PaymentModel? payment;
 
-  const _PaymentSection({required this.payment});
+  const _PaymentSection({required this.booking, required this.payment});
 
   @override
   Widget build(BuildContext context) {
     final currentPayment = payment;
 
+    String emptyMessage;
+
+    if (booking.needsIdentityVerification) {
+      emptyMessage =
+          'Pembayaran belum tersedia. Customer harus melakukan verifikasi KTP dan menunggu persetujuan admin.';
+    } else if (booking.canPay) {
+      emptyMessage =
+          'Pembayaran belum dibuat. Tekan tombol Bayar Sekarang untuk membuat pembayaran.';
+    } else {
+      emptyMessage = 'Pembayaran belum tersedia untuk status booking ini.';
+    }
+
     return _SectionCard(
       title: 'Pembayaran',
       child: currentPayment == null
-          ? const Text(
-              'Pembayaran belum dibuat. Pembayaran baru tersedia setelah verifikasi KTP disetujui admin.',
-              style: TextStyle(
+          ? Text(
+              emptyMessage,
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
                 height: 1.5,
@@ -400,6 +433,8 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayValue = value.trim().isEmpty ? '-' : value;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 11),
       child: Row(
@@ -417,7 +452,7 @@ class _InfoRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              value,
+              displayValue,
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w800,
@@ -437,21 +472,66 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = _statusColor(status);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.14),
+        color: color.withOpacity(0.14),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        status,
-        style: const TextStyle(
-          color: AppColors.warning,
+        _statusLabel(status),
+        style: TextStyle(
+          color: color,
           fontSize: 12,
           fontWeight: FontWeight.w900,
         ),
       ),
     );
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'paid':
+      case 'approved':
+      case 'ongoing':
+      case 'completed':
+        return AppColors.success;
+      case 'rejected':
+      case 'cancelled':
+      case 'expired':
+        return AppColors.danger;
+      default:
+        return AppColors.warning;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'pending_verification':
+        return 'Menunggu Verifikasi';
+      case 'waiting_payment':
+        return 'Menunggu Pembayaran';
+      case 'payment_pending':
+        return 'Payment Pending';
+      case 'paid':
+        return 'Paid';
+      case 'approved':
+        return 'Approved';
+      case 'ongoing':
+        return 'Ongoing';
+      case 'completed':
+        return 'Selesai';
+      case 'rejected':
+        return 'Ditolak';
+      case 'cancelled':
+        return 'Batal';
+      case 'expired':
+        return 'Expired';
+      default:
+        return status;
+    }
   }
 }
 
@@ -473,6 +553,7 @@ class _MessageBox extends StatelessWidget {
         style: const TextStyle(
           color: AppColors.danger,
           fontWeight: FontWeight.w800,
+          height: 1.4,
         ),
       ),
     );
@@ -487,6 +568,57 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text(message, textAlign: TextAlign.center));
+    return Padding(
+      padding: const EdgeInsets.all(26),
+      child: Center(
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppColors.danger,
+                size: 48,
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Gagal memuat detail pesanan',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              AppButton(
+                text: 'Coba Lagi',
+                icon: Icons.refresh_rounded,
+                backgroundColor: AppColors.black,
+                foregroundColor: AppColors.white,
+                onPressed: onRetry,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
