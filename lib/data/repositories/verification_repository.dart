@@ -7,9 +7,7 @@ import '../models/identity_verification_model.dart';
 class VerificationRepository {
   final Dio _dio;
 
-  const VerificationRepository({
-    required Dio dio,
-  }) : _dio = dio;
+  const VerificationRepository({required Dio dio}) : _dio = dio;
 
   Future<IdentityVerificationModel> submitIdentityVerification({
     required int bookingId,
@@ -22,20 +20,35 @@ class VerificationRepository {
     required DateTime takenAt,
   }) async {
     try {
+      final payload = {
+        'booking_id': bookingId,
+        'document_type': 'ktp',
+        'ktp_name': ktpName.trim(),
+        'ktp_number_masked': ktpNumberMasked.trim(),
+        'photo_path': photoPath,
+        'latitude': latitude,
+        'longitude': longitude,
+        'address_text': addressText,
+        'taken_at': takenAt.toUtc().toIso8601String(),
+
+        // Cadangan kalau backend memakai nama field berbeda
+        'document_name': ktpName.trim(),
+        'document_number': ktpNumberMasked.trim(),
+        'document_photo_path': photoPath,
+        'location_latitude': latitude,
+        'location_longitude': longitude,
+        'location_address': addressText,
+      };
+
+      print('IDENTITY VERIFY PAYLOAD: $payload');
+
       final response = await _dio.post(
         ApiConstants.identityVerification,
-        data: {
-          'booking_id': bookingId,
-          'document_type': 'ktp',
-          'ktp_name': ktpName.trim(),
-          'ktp_number_masked': ktpNumberMasked.trim(),
-          'photo_path': photoPath,
-          'latitude': latitude,
-          'longitude': longitude,
-          'address_text': addressText,
-          'taken_at': takenAt.toUtc().toIso8601String(),
-        },
+        data: payload,
       );
+
+      print('IDENTITY VERIFY RESPONSE STATUS: ${response.statusCode}');
+      print('IDENTITY VERIFY RESPONSE DATA: ${response.data}');
 
       final body = response.data;
 
@@ -51,21 +64,39 @@ class VerificationRepository {
         }
       }
 
-      throw const ApiException(
-        message: 'Format response verifikasi identitas tidak valid.',
-      );
+      throw Exception('Format response verifikasi identitas tidak valid.');
     } on DioException catch (error) {
-      throw _handleDioError(error);
+      print('IDENTITY VERIFY DIO ERROR STATUS: ${error.response?.statusCode}');
+      print('IDENTITY VERIFY DIO ERROR DATA: ${error.response?.data}');
+
+      throw Exception(
+        'Gagal submit verifikasi KTP: ${_extractErrorMessage(error)}',
+      );
+    } catch (error) {
+      print('IDENTITY VERIFY ERROR: $error');
+      throw Exception('Gagal submit verifikasi KTP: $error');
     }
   }
 
-  ApiException _handleDioError(DioException error) {
+  String _extractErrorMessage(DioException error) {
+    final data = error.response?.data;
+
+    if (data is Map<String, dynamic>) {
+      return data['message']?.toString() ??
+          data['error']?.toString() ??
+          data.toString();
+    }
+
+    if (data != null) {
+      return data.toString();
+    }
+
     final err = error.error;
 
     if (err is ApiException) {
-      return err;
+      return err.message;
     }
 
-    return ApiException.fromDio(error);
+    return error.message ?? 'Terjadi kesalahan koneksi.';
   }
 }

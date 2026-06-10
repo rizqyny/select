@@ -25,9 +25,7 @@ class StorageRepository {
       );
 
       if (signedUrl.signedUrl.trim().isEmpty) {
-        throw const ApiException(
-          message: 'Signed upload URL tidak ditemukan dari server.',
-        );
+        throw Exception('Signed upload URL kosong dari server.');
       }
 
       final bytes = await file.readAsBytes();
@@ -43,7 +41,9 @@ class StorageRepository {
 
       return signedUrl.path;
     } on DioException catch (error) {
-      throw _handleDioError(error);
+      throw Exception('Gagal upload foto KTP: ${_extractErrorMessage(error)}');
+    } catch (error) {
+      throw Exception('Gagal upload foto KTP: $error');
     }
   }
 
@@ -73,21 +73,35 @@ class StorageRepository {
         );
       }
 
-      throw const ApiException(
-        message: 'Format signed upload URL tidak valid.',
-      );
+      throw Exception('Format signed upload URL tidak valid.');
     } on DioException catch (error) {
-      throw _handleDioError(error);
+      throw Exception(
+        'Gagal membuat signed upload URL: ${_extractErrorMessage(error)}',
+      );
+    } catch (error) {
+      throw Exception('Gagal membuat signed upload URL: $error');
     }
   }
 
-  ApiException _handleDioError(DioException error) {
+  String _extractErrorMessage(DioException error) {
+    final data = error.response?.data;
+
+    if (data is Map<String, dynamic>) {
+      return data['message']?.toString() ??
+          data['error']?.toString() ??
+          data.toString();
+    }
+
+    if (data != null) {
+      return data.toString();
+    }
+
     final err = error.error;
 
     if (err is ApiException) {
-      return err;
+      return err.message;
     }
 
-    return ApiException.fromDio(error);
+    return error.message ?? 'Terjadi kesalahan koneksi.';
   }
 }

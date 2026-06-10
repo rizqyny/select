@@ -33,48 +33,61 @@ class LocationService {
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
     );
 
-    final addressText = await _getAddressText(
-      latitude: position.latitude,
-      longitude: position.longitude,
+    final latitude = position.latitude;
+    final longitude = position.longitude;
+
+    final addressText = await _safeGetAddressText(
+      latitude: latitude,
+      longitude: longitude,
     );
 
     return CapturedLocation(
-      latitude: position.latitude,
-      longitude: position.longitude,
+      latitude: latitude,
+      longitude: longitude,
       addressText: addressText,
       takenAt: DateTime.now(),
     );
   }
 
-  Future<String> _getAddressText({
+  Future<String> _safeGetAddressText({
     required double latitude,
     required double longitude,
   }) async {
+    final fallback = 'Lat: $latitude, Long: $longitude';
+
     try {
-      final placemarks = await placemarkFromCoordinates(latitude, longitude);
+      final placemarks = await placemarkFromCoordinates(
+        latitude,
+        longitude,
+      ).timeout(const Duration(seconds: 8), onTimeout: () => <Placemark>[]);
 
       if (placemarks.isEmpty) {
-        return 'Lat: $latitude, Long: $longitude';
+        return fallback;
       }
 
       final place = placemarks.first;
 
-      final parts = <String>[
-        place.street ?? '',
-        place.subLocality ?? '',
-        place.locality ?? '',
-        place.subAdministrativeArea ?? '',
-        place.administrativeArea ?? '',
-        place.country ?? '',
-      ].where((part) => part.trim().isNotEmpty).toList();
+      final rawParts = <String?>[
+        place.street,
+        place.subLocality,
+        place.locality,
+        place.subAdministrativeArea,
+        place.administrativeArea,
+        place.country,
+      ];
+
+      final parts = rawParts
+          .where((part) => part != null && part.trim().isNotEmpty)
+          .map((part) => part!.trim())
+          .toList();
 
       if (parts.isEmpty) {
-        return 'Lat: $latitude, Long: $longitude';
+        return fallback;
       }
 
       return parts.join(', ');
     } catch (_) {
-      return 'Lat: $latitude, Long: $longitude';
+      return fallback;
     }
   }
 }

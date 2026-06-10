@@ -49,7 +49,9 @@ class IdentityVerificationState {
       bookingId: bookingId,
       ktpName: ktpName ?? this.ktpName,
       ktpNumber: ktpNumber ?? this.ktpNumber,
-      imagePath: identical(imagePath, _unset) ? this.imagePath : imagePath as String?,
+      imagePath: identical(imagePath, _unset)
+          ? this.imagePath
+          : imagePath as String?,
       location: identical(location, _unset)
           ? this.location
           : location as CapturedLocation?,
@@ -74,10 +76,21 @@ class IdentityVerificationState {
   }
 }
 
-final identityVerificationControllerProvider = AsyncNotifierProvider.family<
-    IdentityVerificationController, IdentityVerificationState, int>(
-  IdentityVerificationController.new,
-);
+final identityVerificationControllerProvider =
+    AsyncNotifierProvider.family<
+      IdentityVerificationController,
+      IdentityVerificationState,
+      int
+    >(IdentityVerificationController.new);
+String _cleanErrorMessage(Object error) {
+  final message = error.toString().replaceFirst('Exception: ', '');
+
+  if (message.toLowerCase().contains('internal server error')) {
+    return 'Gagal mengambil alamat lokasi. Coba tekan Ambil Lokasi GPS lagi atau lanjutkan dengan koordinat GPS.';
+  }
+
+  return message;
+}
 
 class IdentityVerificationController
     extends AsyncNotifier<IdentityVerificationState> {
@@ -87,7 +100,8 @@ class IdentityVerificationController
 
   final LocationService _locationService = const LocationService();
 
-  StorageRepository get _storageRepository => ref.read(storageRepositoryProvider);
+  StorageRepository get _storageRepository =>
+      ref.read(storageRepositoryProvider);
 
   VerificationRepository get _verificationRepository =>
       ref.read(verificationRepositoryProvider);
@@ -101,36 +115,21 @@ class IdentityVerificationController
     final current = state.value;
     if (current == null) return;
 
-    state = AsyncData(
-      current.copyWith(
-        ktpName: value,
-        errorMessage: null,
-      ),
-    );
+    state = AsyncData(current.copyWith(ktpName: value, errorMessage: null));
   }
 
   void setKtpNumber(String value) {
     final current = state.value;
     if (current == null) return;
 
-    state = AsyncData(
-      current.copyWith(
-        ktpNumber: value,
-        errorMessage: null,
-      ),
-    );
+    state = AsyncData(current.copyWith(ktpNumber: value, errorMessage: null));
   }
 
   void setImagePath(String path) {
     final current = state.value;
     if (current == null) return;
 
-    state = AsyncData(
-      current.copyWith(
-        imagePath: path,
-        errorMessage: null,
-      ),
-    );
+    state = AsyncData(current.copyWith(imagePath: path, errorMessage: null));
   }
 
   Future<void> getCurrentLocation() async {
@@ -138,10 +137,7 @@ class IdentityVerificationController
     if (current == null) return;
 
     state = AsyncData(
-      current.copyWith(
-        isGettingLocation: true,
-        errorMessage: null,
-      ),
+      current.copyWith(isGettingLocation: true, errorMessage: null),
     );
 
     try {
@@ -162,7 +158,7 @@ class IdentityVerificationController
       state = AsyncData(
         latest.copyWith(
           isGettingLocation: false,
-          errorMessage: error.toString().replaceFirst('Exception: ', ''),
+          errorMessage: _cleanErrorMessage(error),
         ),
       );
     }
@@ -186,12 +182,7 @@ class IdentityVerificationController
       return null;
     }
 
-    state = AsyncData(
-      current.copyWith(
-        isSubmitting: true,
-        errorMessage: null,
-      ),
-    );
+    state = AsyncData(current.copyWith(isSubmitting: true, errorMessage: null));
 
     try {
       final file = File(imagePath);
