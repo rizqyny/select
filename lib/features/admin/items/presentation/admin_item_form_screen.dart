@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -10,6 +11,7 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../data/models/admin_item_model.dart';
 import '../../../../data/models/category_model.dart';
 import '../../../../data/providers/repository_providers.dart';
+import '../providers/admin_items_provider.dart';
 
 final adminItemCategoriesProvider = FutureProvider<List<CategoryModel>>((ref) {
   return ref.watch(itemRepositoryProvider).fetchCategories();
@@ -162,7 +164,11 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
         ),
       );
 
-      Navigator.pop(context, true);
+      ref.invalidate(adminItemsControllerProvider);
+
+      if (!mounted) return;
+
+      context.go('/admin/items');
     } catch (error) {
       if (!mounted) return;
 

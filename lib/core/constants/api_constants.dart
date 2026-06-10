@@ -51,11 +51,13 @@ class ApiConstants {
 
   static String adminCompleteBooking(int id) => '/admin/bookings/$id/complete';
 
-  static String adminItemDetail(int id) => '/items/$id';
+static String adminItemDetail(int id) => '/items/$id';
 
-  static String adminDeleteItem(int id) => '/admin/items/$id';
+static const adminCreateItem = '/admin/items';
 
-  static const adminCreateItem = '/admin/items';
+static String adminUpdateItem(int id) => '/admin/items/$id';
 
-  static String adminUpdateItem(int id) => '/admin/items/$id';
+static String adminDeleteItem(int id) => '/admin/items/$id';
+
+static String adminItemImages(int itemId) => '/admin/items/$itemId/images';
 }

@@ -7,9 +7,7 @@ import '../models/admin_item_model.dart';
 class AdminItemRepository {
   final Dio _dio;
 
-  const AdminItemRepository({
-    required Dio dio,
-  }) : _dio = dio;
+  const AdminItemRepository({required Dio dio}) : _dio = dio;
 
   Future<List<AdminItemModel>> fetchAdminItems({
     String? search,
@@ -18,10 +16,7 @@ class AdminItemRepository {
     int limit = 50,
   }) async {
     try {
-      final queryParameters = <String, dynamic>{
-        'page': page,
-        'limit': limit,
-      };
+      final queryParameters = <String, dynamic>{'page': page, 'limit': limit};
 
       if (search != null && search.trim().isNotEmpty) {
         queryParameters['search'] = search.trim();
@@ -116,7 +111,7 @@ class AdminItemRepository {
     required String status,
     String? imagePath,
   }) async {
-    final basePayload = <String, dynamic>{
+    final payload = <String, dynamic>{
       'name': name.trim(),
       'brand': brand.trim(),
       'serial_number': serialNumber.trim(),
@@ -126,58 +121,58 @@ class AdminItemRepository {
       'status': status,
     };
 
-    final payloads = <Map<String, dynamic>>[];
+    try {
+      final response = method == 'POST'
+          ? await _dio.post(endpoint, data: payload)
+          : await _dio.patch(endpoint, data: payload);
 
-    if (imagePath != null && imagePath.trim().isNotEmpty) {
-      payloads.add({
-        ...basePayload,
-        'image_path': imagePath,
-      });
+      final item = _extractItem(response.data);
 
-      payloads.add({
-        ...basePayload,
-        'primary_image_path': imagePath,
-      });
+      if (imagePath != null && imagePath.trim().isNotEmpty) {
+        await _attachPrimaryImage(itemId: item.id, imagePath: imagePath);
+      }
 
-      payloads.add({
-        ...basePayload,
-        'images': [
-          {
-            'image_path': imagePath,
-            'is_primary': true,
-          }
-        ],
-      });
+      return item;
+    } on DioException catch (error) {
+      throw _handleDioError(error);
     }
+  }
 
-    payloads.add(basePayload);
+  Future<void> _attachPrimaryImage({
+    required int itemId,
+    required String imagePath,
+  }) async {
+    final cleanPath = imagePath.trim();
 
-    DioException? lastValidationError;
+    if (cleanPath.isEmpty) return;
+
+    final payloads = <Map<String, dynamic>>[
+      {'image_path': cleanPath, 'is_primary': true},
+      {'storage_path': cleanPath, 'is_primary': true},
+      {'path': cleanPath, 'is_primary': true},
+      {'bucket': 'item-images', 'path': cleanPath, 'is_primary': true},
+    ];
+
+    DioException? lastError;
 
     for (final payload in payloads) {
       try {
-        final response = method == 'POST'
-            ? await _dio.post(endpoint, data: payload)
-            : await _dio.patch(endpoint, data: payload);
-
-        return _extractItem(response.data);
+        await _dio.post(ApiConstants.adminItemImages(itemId), data: payload);
+        return;
       } on DioException catch (error) {
+        lastError = error;
+
         final statusCode = error.response?.statusCode;
 
-        if (statusCode == 400 || statusCode == 422) {
-          lastValidationError = error;
-          continue;
+        if (statusCode != 400 && statusCode != 422) {
+          rethrow;
         }
-
-        throw _handleDioError(error);
       }
     }
 
-    if (lastValidationError != null) {
-      throw _handleDioError(lastValidationError);
+    if (lastError != null) {
+      throw _handleDioError(lastError);
     }
-
-    throw const ApiException(message: 'Gagal menyimpan data barang.');
   }
 
   AdminItemModel _extractItem(Object? body) {
@@ -193,9 +188,7 @@ class AdminItemRepository {
       }
     }
 
-    throw const ApiException(
-      message: 'Format response item tidak valid.',
-    );
+    throw const ApiException(message: 'Format response item tidak valid.');
   }
 
   List<dynamic> _extractList(Object? body) {
@@ -234,7 +227,8 @@ class AdminItemRepository {
 
     if (data is Map<String, dynamic>) {
       return ApiException(
-        message: data['message']?.toString() ??
+        message:
+            data['message']?.toString() ??
             data['error']?.toString() ??
             data.toString(),
         statusCode: error.response?.statusCode,
