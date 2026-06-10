@@ -50,4 +50,8 @@ class ApiConstants {
   static String adminStartBooking(int id) => '/admin/bookings/$id/start';
 
   static String adminCompleteBooking(int id) => '/admin/bookings/$id/complete';
+
+  static String adminItemDetail(int id) => '/admin/items/$id';
+
+  static String adminDeleteItem(int id) => '/admin/items/$id';
 }
