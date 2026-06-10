@@ -32,7 +32,7 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
   late final TextEditingController _brandController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _dailyPriceController;
-  late final TextEditingController _depositController;
+  late final TextEditingController _serialNumberController;
 
   final _picker = ImagePicker();
 
@@ -61,10 +61,8 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
           ? ''
           : item.dailyPrice.toStringAsFixed(0),
     );
-    _depositController = TextEditingController(
-      text: item == null || item.depositAmount <= 0
-          ? ''
-          : item.depositAmount.toStringAsFixed(0),
+    _serialNumberController = TextEditingController(
+      text: item?.serialNumber ?? '',
     );
 
     _categoryId = item?.categoryId == 0 ? null : item?.categoryId;
@@ -77,7 +75,7 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
     _brandController.dispose();
     _descriptionController.dispose();
     _dailyPriceController.dispose();
-    _depositController.dispose();
+    _serialNumberController.dispose();
     super.dispose();
   }
 
@@ -132,10 +130,10 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
           id: widget.item!.id,
           name: _nameController.text,
           brand: _brandController.text,
+          serialNumber: _serialNumberController.text,
           categoryId: _categoryId!,
           description: _descriptionController.text,
           dailyPrice: _parseNumber(_dailyPriceController.text),
-          depositAmount: _parseNumber(_depositController.text),
           status: _status,
           imagePath: uploadedImagePath,
         );
@@ -143,10 +141,10 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
         await repository.createItem(
           name: _nameController.text,
           brand: _brandController.text,
+          serialNumber: _serialNumberController.text,
           categoryId: _categoryId!,
           description: _descriptionController.text,
           dailyPrice: _parseNumber(_dailyPriceController.text),
-          depositAmount: _parseNumber(_depositController.text),
           status: _status,
           imagePath: uploadedImagePath,
         );
@@ -254,6 +252,25 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
                         },
                       ),
                       const SizedBox(height: 14),
+                      _TextField(
+                        controller: _serialNumberController,
+                        label: 'Serial Number',
+                        hint: 'Contoh: SN-CANON-M50-001',
+                        validator: (value) {
+                          final text = value?.trim() ?? '';
+
+                          if (text.isEmpty) {
+                            return 'Serial number wajib diisi';
+                          }
+
+                          if (text.length > 100) {
+                            return 'Serial number maksimal 100 karakter';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
                       DropdownButtonFormField<int>(
                         value: _categoryId,
                         decoration: _inputDecoration(
@@ -332,20 +349,6 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
                         validator: (value) {
                           if (_parseNumber(value ?? '') <= 0) {
                             return 'Harga sewa wajib lebih dari 0';
-                          }
-
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      _TextField(
-                        controller: _depositController,
-                        label: 'Deposit',
-                        hint: 'Contoh: 200000',
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (_parseNumber(value ?? '') < 0) {
-                            return 'Deposit tidak valid';
                           }
 
                           return null;

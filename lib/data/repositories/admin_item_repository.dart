@@ -7,7 +7,9 @@ import '../models/admin_item_model.dart';
 class AdminItemRepository {
   final Dio _dio;
 
-  const AdminItemRepository({required Dio dio}) : _dio = dio;
+  const AdminItemRepository({
+    required Dio dio,
+  }) : _dio = dio;
 
   Future<List<AdminItemModel>> fetchAdminItems({
     String? search,
@@ -16,7 +18,10 @@ class AdminItemRepository {
     int limit = 50,
   }) async {
     try {
-      final queryParameters = <String, dynamic>{'page': page, 'limit': limit};
+      final queryParameters = <String, dynamic>{
+        'page': page,
+        'limit': limit,
+      };
 
       if (search != null && search.trim().isNotEmpty) {
         queryParameters['search'] = search.trim();
@@ -45,10 +50,10 @@ class AdminItemRepository {
   Future<AdminItemModel> createItem({
     required String name,
     required String brand,
+    required String serialNumber,
     required int categoryId,
     required String description,
     required num dailyPrice,
-    required num depositAmount,
     required String status,
     String? imagePath,
   }) async {
@@ -57,10 +62,10 @@ class AdminItemRepository {
       method: 'POST',
       name: name,
       brand: brand,
+      serialNumber: serialNumber,
       categoryId: categoryId,
       description: description,
       dailyPrice: dailyPrice,
-      depositAmount: depositAmount,
       status: status,
       imagePath: imagePath,
     );
@@ -70,10 +75,10 @@ class AdminItemRepository {
     required int id,
     required String name,
     required String brand,
+    required String serialNumber,
     required int categoryId,
     required String description,
     required num dailyPrice,
-    required num depositAmount,
     required String status,
     String? imagePath,
   }) async {
@@ -82,10 +87,10 @@ class AdminItemRepository {
       method: 'PATCH',
       name: name,
       brand: brand,
+      serialNumber: serialNumber,
       categoryId: categoryId,
       description: description,
       dailyPrice: dailyPrice,
-      depositAmount: depositAmount,
       status: status,
       imagePath: imagePath,
     );
@@ -104,34 +109,43 @@ class AdminItemRepository {
     required String method,
     required String name,
     required String brand,
+    required String serialNumber,
     required int categoryId,
     required String description,
     required num dailyPrice,
-    required num depositAmount,
     required String status,
     String? imagePath,
   }) async {
     final basePayload = <String, dynamic>{
       'name': name.trim(),
       'brand': brand.trim(),
+      'serial_number': serialNumber.trim(),
       'category_id': categoryId,
       'description': description.trim(),
       'daily_price': dailyPrice,
-      'deposit_amount': depositAmount,
       'status': status,
     };
 
     final payloads = <Map<String, dynamic>>[];
 
     if (imagePath != null && imagePath.trim().isNotEmpty) {
-      payloads.add({...basePayload, 'image_path': imagePath});
+      payloads.add({
+        ...basePayload,
+        'image_path': imagePath,
+      });
 
-      payloads.add({...basePayload, 'primary_image_path': imagePath});
+      payloads.add({
+        ...basePayload,
+        'primary_image_path': imagePath,
+      });
 
       payloads.add({
         ...basePayload,
         'images': [
-          {'image_path': imagePath, 'is_primary': true},
+          {
+            'image_path': imagePath,
+            'is_primary': true,
+          }
         ],
       });
     }
@@ -179,7 +193,9 @@ class AdminItemRepository {
       }
     }
 
-    throw const ApiException(message: 'Format response item tidak valid.');
+    throw const ApiException(
+      message: 'Format response item tidak valid.',
+    );
   }
 
   List<dynamic> _extractList(Object? body) {
@@ -218,8 +234,7 @@ class AdminItemRepository {
 
     if (data is Map<String, dynamic>) {
       return ApiException(
-        message:
-            data['message']?.toString() ??
+        message: data['message']?.toString() ??
             data['error']?.toString() ??
             data.toString(),
         statusCode: error.response?.statusCode,
