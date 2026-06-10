@@ -35,4 +35,11 @@ class ApiConstants {
   static const adminBookings = '/admin/bookings';
   static const adminUsers = '/admin/users';
   static const adminItems = '/admin/items';
+  static const adminIdentityVerifications = '/admin/verifications/identity';
+
+  static String adminApproveIdentityVerification(int id) =>
+      '/admin/verifications/identity/$id/approve';
+
+  static String adminRejectIdentityVerification(int id) =>
+      '/admin/verifications/identity/$id/reject';
 }
