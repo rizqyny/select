@@ -108,7 +108,7 @@ class BookingDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 18),
                 _ItemsSection(booking: state.booking),
                 const SizedBox(height: 18),
-                _PaymentSection(payment: state.payment),
+                _PaymentSection(booking: state.booking, payment: state.payment),
                 if (state.errorMessage != null) ...[
                   const SizedBox(height: 18),
                   _MessageBox(message: state.errorMessage!),
@@ -321,20 +321,33 @@ class _ItemsSection extends StatelessWidget {
 }
 
 class _PaymentSection extends StatelessWidget {
+  final BookingModel booking;
   final PaymentModel? payment;
 
-  const _PaymentSection({required this.payment});
+  const _PaymentSection({required this.booking, required this.payment});
 
   @override
   Widget build(BuildContext context) {
     final currentPayment = payment;
 
+    String emptyMessage;
+
+    if (booking.needsIdentityVerification) {
+      emptyMessage =
+          'Pembayaran belum tersedia. Customer harus melakukan verifikasi KTP dan menunggu persetujuan admin.';
+    } else if (booking.canPay) {
+      emptyMessage =
+          'Pembayaran belum dibuat. Tekan tombol Bayar Sekarang untuk membuat pembayaran.';
+    } else {
+      emptyMessage = 'Pembayaran belum tersedia untuk status booking ini.';
+    }
+
     return _SectionCard(
       title: 'Pembayaran',
       child: currentPayment == null
-          ? const Text(
-              'Pembayaran belum dibuat. Pembayaran baru tersedia setelah verifikasi KTP disetujui admin.',
-              style: TextStyle(
+          ? Text(
+              emptyMessage,
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
                 height: 1.5,
