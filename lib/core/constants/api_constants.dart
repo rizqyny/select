@@ -60,4 +60,14 @@ class ApiConstants {
   static String adminDeleteItem(int id) => '/admin/items/$id';
 
   static String adminItemImages(int itemId) => '/admin/items/$itemId/images';
+
+  static const adminDashboardSummary = '/admin/dashboard/summary';
+
+  static const adminDashboardTopItems = '/admin/dashboard/top-items';
+
+  static const adminDashboardRecentBookings =
+      '/admin/dashboard/recent-bookings';
+
+  static const adminDashboardBookingStatusDistribution =
+      '/admin/dashboard/booking-status-distribution';
 }
