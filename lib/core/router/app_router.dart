@@ -13,6 +13,9 @@ import '../../features/customer/verification/presentation/identity_verification_
 import '../../data/models/admin_identity_verification_model.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verification_detail_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verifications_screen.dart';
+import '../../data/models/admin_booking_model.dart';
+import '../../features/admin/bookings/presentation/admin_booking_detail_screen.dart';
+import '../../features/admin/bookings/presentation/admin_bookings_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -113,6 +116,24 @@ final appRouter = GoRouter(
         return AdminIdentityVerificationDetailScreen(
           verification: verification,
         );
+      },
+    ),
+    GoRoute(
+      path: '/admin/bookings',
+      name: 'admin-bookings',
+      builder: (context, state) => const AdminBookingsScreen(),
+    ),
+    GoRoute(
+      path: '/admin/bookings/:id',
+      name: 'admin-booking-detail',
+      builder: (context, state) {
+        final booking = state.extra as AdminBookingModel?;
+
+        if (booking == null) {
+          return const AdminBookingsScreen();
+        }
+
+        return AdminBookingDetailScreen(booking: booking);
       },
     ),
   ],

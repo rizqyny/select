@@ -82,7 +82,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 14),
               AppButton(
                 text: 'Verifikasi KTP Customer',
                 icon: Icons.verified_user_rounded,
@@ -93,6 +93,15 @@ class AdminDashboardScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 14),
+              AppButton(
+                text: 'Manajemen Booking',
+                icon: Icons.receipt_long_rounded,
+                backgroundColor: AppColors.black,
+                foregroundColor: AppColors.white,
+                onPressed: () {
+                  context.push('/admin/bookings');
+                },
+              ),
               const SizedBox(height: 24),
               AppButton(
                 text: 'Logout',
