@@ -23,6 +23,7 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   late final WebViewController _controller;
 
   bool _isLoading = true;
+  int _progress = 0;
 
   @override
   void initState() {
@@ -32,6 +33,13 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
+          onProgress: (progress) {
+            if (!mounted) return;
+
+            setState(() {
+              _progress = progress;
+            });
+          },
           onPageStarted: (_) {
             if (!mounted) return;
 
@@ -48,11 +56,29 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
 
             final lowerUrl = url.toLowerCase();
 
-            if (lowerUrl.contains('finish') ||
+            final isFinished =
+                lowerUrl.contains('finish') ||
+                lowerUrl.contains('success') ||
                 lowerUrl.contains('settlement') ||
-                lowerUrl.contains('transaction_status=capture')) {
+                lowerUrl.contains('capture') ||
+                lowerUrl.contains('transaction_status=settlement') ||
+                lowerUrl.contains('transaction_status=capture');
+
+            if (isFinished) {
               Navigator.pop(context, true);
             }
+          },
+          onWebResourceError: (error) {
+            if (!mounted) return;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Gagal memuat halaman pembayaran: ${error.description}',
+                ),
+                backgroundColor: AppColors.danger,
+              ),
+            );
           },
         ),
       )
@@ -63,13 +89,23 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
     Navigator.pop(context, true);
   }
 
+  Future<void> _reload() async {
+    await _controller.reload();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final showProgress = _isLoading || _progress < 100;
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
         title: Text(widget.args.title),
         actions: [
+          IconButton(
+            onPressed: _reload,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
           TextButton(
             onPressed: _finishManually,
             child: const Text(
@@ -85,8 +121,9 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-          if (_isLoading)
-            const LinearProgressIndicator(
+          if (showProgress)
+            LinearProgressIndicator(
+              value: _progress == 0 ? null : _progress / 100,
               color: AppColors.primary,
               backgroundColor: AppColors.white,
             ),
