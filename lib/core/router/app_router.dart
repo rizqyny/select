@@ -24,6 +24,7 @@ import '../../features/customer/verification/presentation/condition_verification
 import '../../data/models/admin_condition_verification_model.dart';
 import '../../features/admin/verifications/presentation/admin_condition_verification_detail_screen.dart';
 import '../../features/admin/verifications/presentation/admin_condition_verifications_screen.dart';
+import '../../features/customer/reviews/presentation/review_form_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -124,6 +125,18 @@ final appRouter = GoRouter(
           itemId: itemId,
           type: type,
         );
+      },
+    ),
+    GoRoute(
+      path: '/customer/reviews/create/:bookingId/:itemId',
+      name: 'customer-create-review',
+      builder: (context, state) {
+        final bookingId =
+            int.tryParse(state.pathParameters['bookingId'] ?? '') ?? 0;
+
+        final itemId = int.tryParse(state.pathParameters['itemId'] ?? '') ?? 0;
+
+        return ReviewFormScreen(bookingId: bookingId, itemId: itemId);
       },
     ),
 
