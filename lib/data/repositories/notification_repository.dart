@@ -66,6 +66,25 @@ class NotificationRepository {
     }
   }
 
+  Future<void> registerDeviceToken({
+    required String fcmToken,
+    required String platform,
+    required String deviceName,
+  }) async {
+    try {
+      await _dio.post(
+        ApiConstants.registerDeviceToken,
+        data: {
+          'fcm_token': fcmToken,
+          'platform': platform,
+          'device_name': deviceName,
+        },
+      );
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    }
+  }
+
   List<dynamic> _extractList(Object? body) {
     Object? data = body;
 
