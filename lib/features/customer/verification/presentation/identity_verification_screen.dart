@@ -12,10 +12,7 @@ import '../providers/identity_verification_provider.dart';
 class IdentityVerificationScreen extends ConsumerStatefulWidget {
   final int bookingId;
 
-  const IdentityVerificationScreen({
-    super.key,
-    required this.bookingId,
-  });
+  const IdentityVerificationScreen({super.key, required this.bookingId});
 
   @override
   ConsumerState<IdentityVerificationScreen> createState() =>
@@ -39,11 +36,8 @@ class _IdentityVerificationScreenState
   Future<void> _openNativeCamera() async {
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => const NativeCameraScreen(
-          title: 'Foto KTP',
-          instruction:
-              'Posisikan KTP di dalam kotak agar nama dan nomor KTP terbaca jelas.',
-        ),
+        builder: (context) =>
+            const NativeCameraScreen(title: 'Foto KTP', showKtpFrame: true),
       ),
     );
 
@@ -96,16 +90,12 @@ class _IdentityVerificationScreenState
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Verifikasi KTP'),
-      ),
+      appBar: AppBar(title: const Text('Verifikasi KTP')),
       body: verificationState.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
-        error: (error, stackTrace) => Center(
-          child: Text(error.toString()),
-        ),
+        error: (error, stackTrace) => Center(child: Text(error.toString())),
         data: (state) {
           final imagePath = state.imagePath;
           final location = state.location;
@@ -167,8 +157,10 @@ class _IdentityVerificationScreenState
                               .setKtpNumber(value);
                         },
                         validator: (value) {
-                          final clean =
-                              (value ?? '').replaceAll(RegExp(r'\D'), '');
+                          final clean = (value ?? '').replaceAll(
+                            RegExp(r'\D'),
+                            '',
+                          );
 
                           if (clean.isEmpty) {
                             return 'Nomor KTP tidak boleh kosong';
@@ -232,7 +224,9 @@ class _IdentityVerificationScreenState
                         icon: Icons.photo_camera_rounded,
                         backgroundColor: AppColors.black,
                         foregroundColor: AppColors.white,
-                        onPressed: state.isSubmitting ? null : _openNativeCamera,
+                        onPressed: state.isSubmitting
+                            ? null
+                            : _openNativeCamera,
                       ),
                       const SizedBox(height: 10),
                       SizedBox(
@@ -338,17 +332,16 @@ class _IdentityVerificationScreenState
               padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
               decoration: const BoxDecoration(
                 color: AppColors.white,
-                border: Border(
-                  top: BorderSide(color: AppColors.border),
-                ),
+                border: Border(top: BorderSide(color: AppColors.border)),
               ),
               child: AppButton(
                 text: state.isSubmitting
                     ? 'Mengirim Verifikasi...'
                     : 'Kirim Verifikasi KTP',
                 icon: Icons.send_rounded,
-                backgroundColor:
-                    state.canSubmit ? AppColors.black : AppColors.border,
+                backgroundColor: state.canSubmit
+                    ? AppColors.black
+                    : AppColors.border,
                 foregroundColor: state.canSubmit
                     ? AppColors.white
                     : AppColors.textSecondary,
@@ -367,9 +360,7 @@ class _IdentityVerificationScreenState
 class _InfoCard extends StatelessWidget {
   final int bookingId;
 
-  const _InfoCard({
-    required this.bookingId,
-  });
+  const _InfoCard({required this.bookingId});
 
   @override
   Widget build(BuildContext context) {
@@ -382,10 +373,7 @@ class _InfoCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.info_rounded,
-            color: AppColors.black,
-          ),
+          const Icon(Icons.info_rounded, color: AppColors.black),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -408,10 +396,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -445,9 +430,7 @@ class _SectionCard extends StatelessWidget {
 class _MessageBox extends StatelessWidget {
   final String message;
 
-  const _MessageBox({
-    required this.message,
-  });
+  const _MessageBox({required this.message});
 
   @override
   Widget build(BuildContext context) {

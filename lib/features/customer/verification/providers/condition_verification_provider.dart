@@ -39,6 +39,18 @@ class ConditionVerificationArgs {
 
     return 'before-rent';
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ConditionVerificationArgs &&
+            other.bookingId == bookingId &&
+            other.itemId == itemId &&
+            other.type == type;
+  }
+
+  @override
+  int get hashCode => Object.hash(bookingId, itemId, type);
 }
 
 class ConditionVerificationState {

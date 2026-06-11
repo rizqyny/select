@@ -55,8 +55,10 @@ class _ConditionVerificationScreenState
     final path = await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            const NativeCameraScreen(title: 'Foto Kondisi Barang'),
+        builder: (context) => const NativeCameraScreen(
+          title: 'Foto Kondisi Barang',
+          showKtpFrame: false,
+        ),
       ),
     );
 
