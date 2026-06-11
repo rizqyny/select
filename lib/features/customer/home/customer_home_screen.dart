@@ -87,7 +87,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                             ? user!.fullName
                             : 'Customer',
                         onLogout: _logout,
-                        onNotificationTap: () => _showComingSoon('Notifikasi'),
+                        onNotificationTap: () => context.push('/customer/notifications'),
                       ),
                     ),
                   ),
