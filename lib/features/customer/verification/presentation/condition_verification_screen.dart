@@ -193,7 +193,7 @@ class _InfoBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
       ),
       child: const Text(
-        'Ambil foto kondisi barang saat masa sewa akan berakhir atau saat barang dikembalikan. Pastikan seluruh kondisi barang terlihat jelas.',
+        'Ambil foto kondisi awal barang sebelum barang digunakan. Foto ini akan dicek oleh admin sebagai bukti kondisi barang sebelum masa sewa dimulai.',
         style: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w800,

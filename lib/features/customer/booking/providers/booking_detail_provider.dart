@@ -135,25 +135,16 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
     await _setLocalConditionSubmitted(
       bookingId: current.booking.id,
       itemId: itemId,
-      type: type,
+      type: 'before_rent',
       value: true,
     );
 
-    if (type == 'after_rent') {
-      state = AsyncData(
-        current.copyWith(
-          hasSubmittedAfterConditionVerification: true,
-          errorMessage: null,
-        ),
-      );
-    } else {
-      state = AsyncData(
-        current.copyWith(
-          hasSubmittedBeforeConditionVerification: true,
-          errorMessage: null,
-        ),
-      );
-    }
+    state = AsyncData(
+      current.copyWith(
+        hasSubmittedBeforeConditionVerification: true,
+        errorMessage: null,
+      ),
+    );
   }
 
   @override
@@ -170,19 +161,12 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
       type: 'before_rent',
     );
 
-    final localAfterConditionSubmitted = await _getLocalConditionSubmitted(
-      bookingId: booking.id,
-      itemId: itemId,
-      type: 'after_rent',
-    );
-
     return BookingDetailState(
       booking: booking,
       payment: payment,
       hasSubmittedIdentityVerification:
           localSubmitted || booking.hasIdentityVerification,
       hasSubmittedBeforeConditionVerification: localBeforeConditionSubmitted,
-      hasSubmittedAfterConditionVerification: localAfterConditionSubmitted,
     );
   }
 
@@ -204,12 +188,6 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
         type: 'before_rent',
       );
 
-      final localAfterConditionSubmitted = await _getLocalConditionSubmitted(
-        bookingId: booking.id,
-        itemId: itemId,
-        type: 'after_rent',
-      );
-
       return BookingDetailState(
         booking: booking,
         payment: payment,
@@ -220,9 +198,6 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
         hasSubmittedBeforeConditionVerification:
             localBeforeConditionSubmitted ||
             (current?.hasSubmittedBeforeConditionVerification ?? false),
-        hasSubmittedAfterConditionVerification:
-            localAfterConditionSubmitted ||
-            (current?.hasSubmittedAfterConditionVerification ?? false),
       );
     });
   }
