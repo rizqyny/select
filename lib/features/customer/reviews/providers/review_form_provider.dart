@@ -43,7 +43,10 @@ class ReviewFormState {
   });
 
   bool get canSubmit {
-    return rating >= 1 && rating <= 5 && !isSubmitting;
+    return rating >= 1 &&
+        rating <= 5 &&
+        comment.trim().isNotEmpty &&
+        !isSubmitting;
   }
 
   ReviewFormState copyWith({

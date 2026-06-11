@@ -23,10 +23,7 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
   late final TextEditingController _commentController;
 
   ReviewFormArgs get _args {
-    return ReviewFormArgs(
-      bookingId: widget.bookingId,
-      itemId: widget.itemId,
-    );
+    return ReviewFormArgs(bookingId: widget.bookingId, itemId: widget.itemId);
   }
 
   @override
@@ -46,17 +43,16 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
         .read(reviewFormControllerProvider(_args).notifier)
         .setComment(_commentController.text);
 
-    final success =
-        await ref.read(reviewFormControllerProvider(_args).notifier).submit();
+    final success = await ref
+        .read(reviewFormControllerProvider(_args).notifier)
+        .submit();
 
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Review berhasil dikirim.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Review berhasil dikirim.')));
 
       Navigator.pop(context, true);
     }
@@ -67,16 +63,12 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
     final reviewState = ref.watch(reviewFormControllerProvider(_args));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Review Barang'),
-      ),
+      appBar: AppBar(title: const Text('Review Barang')),
       body: reviewState.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
-        error: (error, stackTrace) => Center(
-          child: Text(error.toString()),
-        ),
+        error: (error, stackTrace) => Center(child: Text(error.toString())),
         data: (state) {
           return ListView(
             padding: const EdgeInsets.fromLTRB(22, 18, 22, 130),
@@ -126,7 +118,14 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
                 },
               ),
               const SizedBox(height: 18),
-              _CommentCard(controller: _commentController),
+              _CommentCard(
+                controller: _commentController,
+                onChanged: (value) {
+                  ref
+                      .read(reviewFormControllerProvider(_args).notifier)
+                      .setComment(value);
+                },
+              ),
               if (state.errorMessage != null) ...[
                 const SizedBox(height: 18),
                 _MessageBox(message: state.errorMessage!),
@@ -142,9 +141,7 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
               padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
               decoration: const BoxDecoration(
                 color: AppColors.white,
-                border: Border(
-                  top: BorderSide(color: AppColors.border),
-                ),
+                border: Border(top: BorderSide(color: AppColors.border)),
               ),
               child: AppButton(
                 text: 'Kirim Review',
@@ -152,8 +149,9 @@ class _ReviewFormScreenState extends ConsumerState<ReviewFormScreen> {
                 backgroundColor: AppColors.black,
                 foregroundColor: AppColors.white,
                 isLoading: state.isSubmitting,
-                onPressed:
-                    state.canSubmit && !state.isSubmitting ? _submit : null,
+                onPressed: state.canSubmit && !state.isSubmitting
+                    ? _submit
+                    : null,
               ),
             ),
           );
@@ -168,10 +166,7 @@ class _RatingCard extends StatelessWidget {
   final int rating;
   final ValueChanged<int> onChanged;
 
-  const _RatingCard({
-    required this.rating,
-    required this.onChanged,
-  });
+  const _RatingCard({required this.rating, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -199,10 +194,9 @@ class _RatingCard extends StatelessWidget {
 
 class _CommentCard extends StatelessWidget {
   final TextEditingController controller;
+  final ValueChanged<String> onChanged;
 
-  const _CommentCard({
-    required this.controller,
-  });
+  const _CommentCard({required this.controller, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +205,7 @@ class _CommentCard extends StatelessWidget {
       child: TextField(
         controller: controller,
         maxLines: 5,
+        onChanged: onChanged,
         decoration: InputDecoration(
           hintText:
               'Contoh: Barang bagus, admin responsif, dan proses sewa jelas.',
@@ -238,10 +233,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -274,9 +266,7 @@ class _SectionCard extends StatelessWidget {
 class _MessageBox extends StatelessWidget {
   final String message;
 
-  const _MessageBox({
-    required this.message,
-  });
+  const _MessageBox({required this.message});
 
   @override
   Widget build(BuildContext context) {
