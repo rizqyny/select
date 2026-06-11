@@ -80,4 +80,8 @@ class ApiConstants {
 
   static String adminRejectConditionVerification(int id) =>
       '/admin/verifications/condition/$id/reject';
+
+  static String createReview({required int bookingId, required int itemId}) {
+    return '/bookings/$bookingId/items/$itemId/reviews';
+  }
 }
