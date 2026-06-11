@@ -90,4 +90,6 @@ class ApiConstants {
   static const readAllNotifications = '/notifications/read-all';
 
   static const testNotification = '/notifications/test';
+  
+  static const registerDeviceToken = '/notifications/register-device';
 }
