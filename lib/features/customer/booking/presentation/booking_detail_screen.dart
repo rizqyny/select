@@ -245,41 +245,28 @@ class BookingDetailScreen extends ConsumerWidget {
                           : () => _createOrOpenPayment(context, ref, state),
                     )
                   : booking.status == 'approved'
-                  ? state.hasSubmittedBeforeConditionVerification
-                        ? const Text(
-                            'Verifikasi kondisi awal sudah dikirim. Menunggu persetujuan admin.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.warning,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          )
-                        : AppButton(
-                            text: 'Verifikasi Kondisi Awal',
-                            icon: Icons.fact_check_rounded,
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.black,
-                            onPressed: () {
-                              _openConditionVerification(
-                                context,
-                                ref,
-                                booking,
-                                'before_rent',
-                              );
-                            },
-                          )
+                  ? const Text(
+                      'Booking sudah disetujui. Verifikasi kondisi barang dilakukan saat masa sewa akan berakhir.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w900,
+                        height: 1.4,
+                      ),
+                    )
                   : booking.status == 'ongoing' || booking.status == 'active'
                   ? state.hasSubmittedAfterConditionVerification
                         ? const Text(
-                            'Verifikasi kondisi akhir sudah dikirim. Menunggu persetujuan admin.',
+                            'Verifikasi kondisi barang sudah dikirim. Menunggu pengecekan admin.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppColors.warning,
                               fontWeight: FontWeight.w900,
+                              height: 1.4,
                             ),
                           )
                         : AppButton(
-                            text: 'Verifikasi Kondisi Akhir',
+                            text: 'Verifikasi Kondisi Barang',
                             icon: Icons.assignment_turned_in_rounded,
                             backgroundColor: AppColors.black,
                             foregroundColor: AppColors.white,

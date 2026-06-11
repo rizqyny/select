@@ -186,19 +186,15 @@ class _InfoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAfter = type == 'after_rent';
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.primary.withOpacity(0.25),
         borderRadius: BorderRadius.circular(24),
       ),
-      child: Text(
-        isAfter
-            ? 'Ambil foto kondisi barang setelah masa sewa selesai atau saat barang dikembalikan.'
-            : 'Ambil foto kondisi barang sebelum mulai digunakan oleh customer.',
-        style: const TextStyle(
+      child: const Text(
+        'Ambil foto kondisi barang saat masa sewa akan berakhir atau saat barang dikembalikan. Pastikan seluruh kondisi barang terlihat jelas.',
+        style: TextStyle(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w800,
           height: 1.5,
