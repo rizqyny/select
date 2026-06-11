@@ -229,10 +229,24 @@ class _QuickActions extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _ActionButton(
-            label: 'Barang',
-            icon: Icons.devices_other_rounded,
-            onTap: () => context.go('/admin/items'),
+          Row(
+            children: [
+              Expanded(
+                child: _ActionButton(
+                  label: 'Barang',
+                  icon: Icons.devices_other_rounded,
+                  onTap: () => context.go('/admin/items'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ActionButton(
+                  label: 'User',
+                  icon: Icons.people_alt_rounded,
+                  onTap: () => context.go('/admin/users'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

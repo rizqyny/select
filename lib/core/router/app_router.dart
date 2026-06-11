@@ -18,6 +18,7 @@ import '../../features/customer/items/presentation/item_detail_screen.dart';
 import '../../features/customer/verification/presentation/identity_verification_screen.dart';
 import '../../data/models/admin_item_model.dart';
 import '../../features/admin/items/presentation/admin_item_form_screen.dart';
+import '../../features/admin/users/presentation/admin_users_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -150,6 +151,11 @@ final appRouter = GoRouter(
 
             return AdminItemFormScreen(item: item);
           },
+        ),
+        GoRoute(
+          path: '/admin/users',
+          name: 'admin-users',
+          builder: (context, state) => const AdminUsersScreen(),
         ),
       ],
     ),
