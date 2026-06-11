@@ -14,6 +14,7 @@ import '../repositories/admin_dashboard_repository.dart';
 import '../repositories/admin_user_repository.dart';
 import '../repositories/admin_condition_verification_repository.dart';
 import '../repositories/review_repository.dart';
+import '../repositories/notification_repository.dart';
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(dio: ref.watch(dioProvider));
@@ -26,14 +27,6 @@ final favoriteRepositoryProvider = Provider<FavoriteRepository>((ref) {
 final adminItemRepositoryProvider = Provider<AdminItemRepository>((ref) {
   return AdminItemRepository(dio: ref.watch(dioProvider));
 });
-
-// final bookingRepositoryProvider = Provider<BookingRepository>((ref) {
-//   return BookingRepository(dio: ref.watch(dioProvider));
-// });
-
-// final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
-//   return PaymentRepository(dio: ref.watch(dioProvider));
-// });
 
 final adminVerificationRepositoryProvider =
     Provider<AdminVerificationRepository>((ref) {
@@ -77,4 +70,8 @@ final adminConditionVerificationRepositoryProvider =
 
 final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
   return ReviewRepository(dio: ref.watch(dioProvider));
+});
+
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
+  return NotificationRepository(dio: ref.watch(dioProvider));
 });
