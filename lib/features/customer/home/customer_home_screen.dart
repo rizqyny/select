@@ -11,6 +11,7 @@ import '../../auth/providers/auth_provider.dart';
 import 'providers/customer_home_provider.dart';
 import 'widgets/customer_category_chip.dart';
 import 'widgets/customer_item_card.dart';
+import '../notifications/providers/device_token_provider.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -22,6 +23,15 @@ class CustomerHomeScreen extends ConsumerStatefulWidget {
 class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   final _searchController = TextEditingController();
   Timer? _searchDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      ref.read(deviceTokenControllerProvider.notifier).registerDevice();
+    });
+  }
 
   @override
   void dispose() {
@@ -87,7 +97,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                             ? user!.fullName
                             : 'Customer',
                         onLogout: _logout,
-                        onNotificationTap: () => context.push('/customer/notifications'),
+                        onNotificationTap: () =>
+                            context.push('/customer/notifications'),
                       ),
                     ),
                   ),

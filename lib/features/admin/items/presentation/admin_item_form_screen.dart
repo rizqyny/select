@@ -279,7 +279,7 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<int>(
-                        value: _categoryId,
+                        initialValue: _categoryId,
                         decoration: _inputDecoration(
                           label: 'Kategori',
                           hint: 'Pilih kategori',
@@ -307,7 +307,7 @@ class _AdminItemFormScreenState extends ConsumerState<AdminItemFormScreen> {
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
-                        value: _status,
+                        initialValue: _status,
                         decoration: _inputDecoration(
                           label: 'Status',
                           hint: 'Pilih status',
