@@ -40,7 +40,8 @@ class BookingDetailScreen extends ConsumerWidget {
   bool _needsBeforeConditionVerification(BookingModel booking) {
     return booking.status == 'payment_pending' ||
         booking.status == 'paid' ||
-        booking.status == 'waiting_admin_approval';
+        booking.status == 'waiting_admin_approval' ||
+        booking.status == 'approved';
   }
 
   Future<void> _createOrOpenPayment(
@@ -133,7 +134,7 @@ class BookingDetailScreen extends ConsumerWidget {
     if (result == true && context.mounted) {
       await ref
           .read(bookingDetailControllerProvider(booking.id).notifier)
-          .markConditionVerificationSubmitted(type);
+          .markConditionVerificationSubmitted("");
 
       await ref
           .read(bookingDetailControllerProvider(booking.id).notifier)
@@ -206,54 +207,10 @@ class BookingDetailScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     )
-                  : booking.needsIdentityVerification
-                  ? state.hasSubmittedIdentityVerification
-                        ? const Text(
-                            'Verifikasi KTP sudah dikirim. Menunggu persetujuan admin.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.warning,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          )
-                        : AppButton(
-                            text: 'Verifikasi KTP Dulu',
-                            icon: Icons.badge_rounded,
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.black,
-                            onPressed: () async {
-                              final result = await context.push<bool>(
-                                '/customer/verifications/identity/${booking.id}',
-                              );
-
-                              if (result == true && context.mounted) {
-                                await ref
-                                    .read(
-                                      bookingDetailControllerProvider(
-                                        booking.id,
-                                      ).notifier,
-                                    )
-                                    .markIdentityVerificationSubmitted();
-                              }
-                            },
-                          )
-                  : booking.canPay
-                  ? AppButton(
-                      text: state.isCreatingPayment
-                          ? 'Membuat Pembayaran...'
-                          : 'Bayar Sekarang',
-                      icon: Icons.payment_rounded,
-                      backgroundColor: AppColors.black,
-                      foregroundColor: AppColors.white,
-                      isLoading: state.isCreatingPayment,
-                      onPressed: state.isCreatingPayment
-                          ? null
-                          : () => _createOrOpenPayment(context, ref, state),
-                    )
                   : _needsBeforeConditionVerification(booking)
                   ? state.hasSubmittedBeforeConditionVerification
                         ? const Text(
-                            'Verifikasi kondisi awal barang sudah dikirim. Menunggu persetujuan admin.',
+                            'Verifikasi kondisi awal barang sudah dikirim. Menunggu admin memulai masa sewa.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppColors.warning,
@@ -275,9 +232,9 @@ class BookingDetailScreen extends ConsumerWidget {
                               );
                             },
                           )
-                  : booking.status == 'approved'
+                  : booking.status == 'ongoing' || booking.status == 'active'
                   ? const Text(
-                      'Booking sudah disetujui. Silakan lanjutkan proses pengambilan barang sesuai arahan admin.',
+                      'Masa sewa sedang berjalan.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.success,
@@ -285,9 +242,9 @@ class BookingDetailScreen extends ConsumerWidget {
                         height: 1.4,
                       ),
                     )
-                  : booking.status == 'ongoing' || booking.status == 'active'
+                  : booking.status == 'completed'
                   ? const Text(
-                      'Masa sewa sedang berjalan.',
+                      'Booking sudah selesai.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textSecondary,
