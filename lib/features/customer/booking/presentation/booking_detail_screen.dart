@@ -37,6 +37,12 @@ class BookingDetailScreen extends ConsumerWidget {
     }
   }
 
+  bool _needsBeforeConditionVerification(BookingModel booking) {
+    return booking.status == 'payment_pending' ||
+        booking.status == 'paid' ||
+        booking.status == 'waiting_admin_approval';
+  }
+
   Future<void> _createOrOpenPayment(
     BuildContext context,
     WidgetRef ref,
@@ -244,20 +250,10 @@ class BookingDetailScreen extends ConsumerWidget {
                           ? null
                           : () => _createOrOpenPayment(context, ref, state),
                     )
-                  : booking.status == 'approved'
-                  ? const Text(
-                      'Booking sudah disetujui. Verifikasi kondisi barang dilakukan saat masa sewa akan berakhir.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w900,
-                        height: 1.4,
-                      ),
-                    )
-                  : booking.status == 'ongoing' || booking.status == 'active'
-                  ? state.hasSubmittedAfterConditionVerification
+                  : _needsBeforeConditionVerification(booking)
+                  ? state.hasSubmittedBeforeConditionVerification
                         ? const Text(
-                            'Verifikasi kondisi barang sudah dikirim. Menunggu pengecekan admin.',
+                            'Verifikasi kondisi awal barang sudah dikirim. Menunggu persetujuan admin.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppColors.warning,
@@ -266,8 +262,8 @@ class BookingDetailScreen extends ConsumerWidget {
                             ),
                           )
                         : AppButton(
-                            text: 'Verifikasi Kondisi Barang',
-                            icon: Icons.assignment_turned_in_rounded,
+                            text: 'Verifikasi Kondisi Awal Barang',
+                            icon: Icons.fact_check_rounded,
                             backgroundColor: AppColors.black,
                             foregroundColor: AppColors.white,
                             onPressed: () {
@@ -275,10 +271,30 @@ class BookingDetailScreen extends ConsumerWidget {
                                 context,
                                 ref,
                                 booking,
-                                'after_rent',
+                                'before_rent',
                               );
                             },
                           )
+                  : booking.status == 'approved'
+                  ? const Text(
+                      'Booking sudah disetujui. Silakan lanjutkan proses pengambilan barang sesuai arahan admin.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w900,
+                        height: 1.4,
+                      ),
+                    )
+                  : booking.status == 'ongoing' || booking.status == 'active'
+                  ? const Text(
+                      'Masa sewa sedang berjalan.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w900,
+                        height: 1.4,
+                      ),
+                    )
                   : Text(
                       _bottomStatusMessage(booking.status),
                       textAlign: TextAlign.center,
