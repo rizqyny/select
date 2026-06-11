@@ -11,6 +11,7 @@ import '../repositories/admin_verification_repository.dart';
 import '../repositories/admin_booking_repository.dart';
 import '../repositories/admin_item_repository.dart';
 import '../repositories/admin_dashboard_repository.dart';
+import '../repositories/admin_user_repository.dart';
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(dio: ref.watch(dioProvider));
@@ -61,4 +62,8 @@ final adminDashboardRepositoryProvider = Provider<AdminDashboardRepository>((
   ref,
 ) {
   return AdminDashboardRepository(dio: ref.watch(dioProvider));
+});
+
+final adminUserRepositoryProvider = Provider<AdminUserRepository>((ref) {
+  return AdminUserRepository(dio: ref.watch(dioProvider));
 });
