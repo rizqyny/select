@@ -70,4 +70,6 @@ class ApiConstants {
 
   static const adminDashboardBookingStatusDistribution =
       '/admin/dashboard/booking-status-distribution';
+
+  static String adminUpdateUserRole(int id) => '/admin/users/$id/role';
 }
