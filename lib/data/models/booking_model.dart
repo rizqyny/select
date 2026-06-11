@@ -58,7 +58,7 @@ class BookingModel {
   }
 
   bool get canPay {
-    return status == 'waiting_payment' || status == 'payment_pending';
+    return status == 'waiting_payment';
   }
 
   bool get needsIdentityVerification {
