@@ -72,4 +72,12 @@ class ApiConstants {
       '/admin/dashboard/booking-status-distribution';
 
   static String adminUpdateUserRole(int id) => '/admin/users/$id/role';
+
+  static const adminConditionVerifications = '/admin/verifications/condition';
+
+  static String adminApproveConditionVerification(int id) =>
+      '/admin/verifications/condition/$id/approve';
+
+  static String adminRejectConditionVerification(int id) =>
+      '/admin/verifications/condition/$id/reject';
 }
