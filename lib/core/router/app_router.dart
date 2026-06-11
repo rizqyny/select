@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
 import '../../data/models/admin_booking_model.dart';
 import '../../data/models/admin_identity_verification_model.dart';
 import '../../features/admin/bookings/presentation/admin_booking_detail_screen.dart';
@@ -20,6 +21,9 @@ import '../../data/models/admin_item_model.dart';
 import '../../features/admin/items/presentation/admin_item_form_screen.dart';
 import '../../features/admin/users/presentation/admin_users_screen.dart';
 import '../../features/customer/verification/presentation/condition_verification_screen.dart';
+import '../../data/models/admin_condition_verification_model.dart';
+import '../../features/admin/verifications/presentation/admin_condition_verification_detail_screen.dart';
+import '../../features/admin/verifications/presentation/admin_condition_verifications_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -176,6 +180,12 @@ final appRouter = GoRouter(
           name: 'admin-users',
           builder: (context, state) => const AdminUsersScreen(),
         ),
+        GoRoute(
+          path: '/admin/verifications/condition',
+          name: 'admin-condition-verifications',
+          builder: (context, state) =>
+              const AdminConditionVerificationsScreen(),
+        ),
       ],
     ),
 
@@ -207,6 +217,21 @@ final appRouter = GoRouter(
 
         return AdminIdentityVerificationDetailScreen(
           verification: verification,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/admin/verifications/condition/:id',
+      name: 'admin-condition-verification-detail',
+      builder: (context, state) {
+        final extra = state.extra;
+
+        if (extra is AdminConditionVerificationModel) {
+          return AdminConditionVerificationDetailScreen(verification: extra);
+        }
+
+        return const Scaffold(
+          body: Center(child: Text('Data verifikasi kondisi tidak ditemukan.')),
         );
       },
     ),
