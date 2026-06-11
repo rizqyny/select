@@ -84,4 +84,10 @@ class ApiConstants {
   static String createReview({required int bookingId, required int itemId}) {
     return '/bookings/$bookingId/items/$itemId/reviews';
   }
+
+  static String readNotification(int id) => '/notifications/$id/read';
+
+  static const readAllNotifications = '/notifications/read-all';
+
+  static const testNotification = '/notifications/test';
 }
