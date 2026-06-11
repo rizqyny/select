@@ -164,6 +164,16 @@ class BookingDetailScreen extends ConsumerWidget {
     );
 
     if (result == true && context.mounted) {
+      await ref
+          .read(bookingDetailControllerProvider(booking.id).notifier)
+          .markReviewSubmitted();
+
+      await ref
+          .read(bookingDetailControllerProvider(booking.id).notifier)
+          .refresh();
+
+      if (!context.mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Terima kasih sudah memberi review.')),
       );
@@ -271,15 +281,25 @@ class BookingDetailScreen extends ConsumerWidget {
                       ),
                     )
                   : booking.status == 'completed'
-                  ? AppButton(
-                      text: 'Review Barang',
-                      icon: Icons.star_rounded,
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.black,
-                      onPressed: () {
-                        _openReviewForm(context, ref, booking);
-                      },
-                    )
+                  ? state.hasSubmittedReview
+                        ? const Text(
+                            'Review barang sudah dikirim. Terima kasih atas penilaianmu.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w900,
+                              height: 1.4,
+                            ),
+                          )
+                        : AppButton(
+                            text: 'Review Barang',
+                            icon: Icons.star_rounded,
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.black,
+                            onPressed: () {
+                              _openReviewForm(context, ref, booking);
+                            },
+                          )
                   : Text(
                       _bottomStatusMessage(booking.status),
                       textAlign: TextAlign.center,
