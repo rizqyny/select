@@ -15,6 +15,8 @@ class BookingDetailState {
   final bool isCreatingPayment;
   final bool hasSubmittedIdentityVerification;
   final String? errorMessage;
+  final bool hasSubmittedBeforeConditionVerification;
+  final bool hasSubmittedAfterConditionVerification;
 
   const BookingDetailState({
     required this.booking,
@@ -22,6 +24,8 @@ class BookingDetailState {
     this.isCreatingPayment = false,
     this.hasSubmittedIdentityVerification = false,
     this.errorMessage,
+    this.hasSubmittedBeforeConditionVerification = false,
+    this.hasSubmittedAfterConditionVerification = false,
   });
 
   BookingDetailState copyWith({
@@ -30,6 +34,8 @@ class BookingDetailState {
     bool? isCreatingPayment,
     bool? hasSubmittedIdentityVerification,
     Object? errorMessage = _unset,
+    bool? hasSubmittedBeforeConditionVerification,
+    bool? hasSubmittedAfterConditionVerification,
   }) {
     return BookingDetailState(
       booking: booking ?? this.booking,
@@ -43,6 +49,12 @@ class BookingDetailState {
       errorMessage: identical(errorMessage, _unset)
           ? this.errorMessage
           : errorMessage as String?,
+      hasSubmittedBeforeConditionVerification:
+          hasSubmittedBeforeConditionVerification ??
+          this.hasSubmittedBeforeConditionVerification,
+      hasSubmittedAfterConditionVerification:
+          hasSubmittedAfterConditionVerification ??
+          this.hasSubmittedAfterConditionVerification,
     );
   }
 }
@@ -68,6 +80,81 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
       ref.read(paymentRepositoryProvider);
 
   String get _localIdentityKey => 'identity_verification_submitted_$bookingId';
+  int _firstItemId(BookingModel booking) {
+    if (booking.items.isEmpty) return 0;
+
+    return booking.items.first.itemId;
+  }
+
+  String _localConditionKey({
+    required int bookingId,
+    required int itemId,
+    required String type,
+  }) {
+    return 'condition_verification_${bookingId}_${itemId}_$type';
+  }
+
+  Future<bool> _getLocalConditionSubmitted({
+    required int bookingId,
+    required int itemId,
+    required String type,
+  }) async {
+    if (itemId == 0) return false;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    return prefs.getBool(
+          _localConditionKey(bookingId: bookingId, itemId: itemId, type: type),
+        ) ??
+        false;
+  }
+
+  Future<void> _setLocalConditionSubmitted({
+    required int bookingId,
+    required int itemId,
+    required String type,
+    required bool value,
+  }) async {
+    if (itemId == 0) return;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setBool(
+      _localConditionKey(bookingId: bookingId, itemId: itemId, type: type),
+      value,
+    );
+  }
+
+  Future<void> markConditionVerificationSubmitted(String type) async {
+    final current = state.value;
+
+    if (current == null) return;
+
+    final itemId = _firstItemId(current.booking);
+
+    await _setLocalConditionSubmitted(
+      bookingId: current.booking.id,
+      itemId: itemId,
+      type: type,
+      value: true,
+    );
+
+    if (type == 'after_rent') {
+      state = AsyncData(
+        current.copyWith(
+          hasSubmittedAfterConditionVerification: true,
+          errorMessage: null,
+        ),
+      );
+    } else {
+      state = AsyncData(
+        current.copyWith(
+          hasSubmittedBeforeConditionVerification: true,
+          errorMessage: null,
+        ),
+      );
+    }
+  }
 
   @override
   FutureOr<BookingDetailState> build() async {
@@ -75,11 +162,27 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
     final payment = await _paymentRepository.fetchPaymentByBooking(bookingId);
     final localSubmitted = await _getLocalIdentitySubmitted();
 
+    final itemId = _firstItemId(booking);
+
+    final localBeforeConditionSubmitted = await _getLocalConditionSubmitted(
+      bookingId: booking.id,
+      itemId: itemId,
+      type: 'before_rent',
+    );
+
+    final localAfterConditionSubmitted = await _getLocalConditionSubmitted(
+      bookingId: booking.id,
+      itemId: itemId,
+      type: 'after_rent',
+    );
+
     return BookingDetailState(
       booking: booking,
       payment: payment,
       hasSubmittedIdentityVerification:
           localSubmitted || booking.hasIdentityVerification,
+      hasSubmittedBeforeConditionVerification: localBeforeConditionSubmitted,
+      hasSubmittedAfterConditionVerification: localAfterConditionSubmitted,
     );
   }
 
@@ -93,6 +196,20 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
       final payment = await _paymentRepository.fetchPaymentByBooking(bookingId);
       final localSubmitted = await _getLocalIdentitySubmitted();
 
+      final itemId = _firstItemId(booking);
+
+      final localBeforeConditionSubmitted = await _getLocalConditionSubmitted(
+        bookingId: booking.id,
+        itemId: itemId,
+        type: 'before_rent',
+      );
+
+      final localAfterConditionSubmitted = await _getLocalConditionSubmitted(
+        bookingId: booking.id,
+        itemId: itemId,
+        type: 'after_rent',
+      );
+
       return BookingDetailState(
         booking: booking,
         payment: payment,
@@ -100,6 +217,12 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
             localSubmitted ||
             booking.hasIdentityVerification ||
             (current?.hasSubmittedIdentityVerification ?? false),
+        hasSubmittedBeforeConditionVerification:
+            localBeforeConditionSubmitted ||
+            (current?.hasSubmittedBeforeConditionVerification ?? false),
+        hasSubmittedAfterConditionVerification:
+            localAfterConditionSubmitted ||
+            (current?.hasSubmittedAfterConditionVerification ?? false),
       );
     });
   }
