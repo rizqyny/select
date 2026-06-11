@@ -25,7 +25,11 @@ class ConditionVerificationArgs {
   String get localKey => 'condition_verification_${bookingId}_${itemId}_$type';
 
   String get title {
-    return 'Verifikasi Kondisi Awal Barang';
+    if (type == 'after_rent') {
+      return 'Kondisi Akhir Barang';
+    }
+
+    return 'Kondisi Awal Barang';
   }
 
   String get storageFolder {
