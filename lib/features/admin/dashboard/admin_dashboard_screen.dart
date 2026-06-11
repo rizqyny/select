@@ -8,6 +8,7 @@ import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../data/models/admin_dashboard_model.dart';
 import 'providers/admin_dashboard_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -19,6 +20,13 @@ class AdminDashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard Admin'),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: () => _logout(context, ref),
+            icon: const Icon(Icons.logout_rounded),
+          ),
+        ],
       ),
       body: dashboardState.when(
         loading: () => const Center(
@@ -78,14 +86,20 @@ class AdminDashboardScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    await ref.read(authControllerProvider.notifier).signOut();
+
+    if (!context.mounted) return;
+
+    context.go('/login');
+  }
 }
 
 class _SummaryGrid extends StatelessWidget {
   final AdminDashboardSummary summary;
 
-  const _SummaryGrid({
-    required this.summary,
-  });
+  const _SummaryGrid({required this.summary});
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +144,7 @@ class _SummaryGrid extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 14,
         crossAxisSpacing: 14,
-        childAspectRatio: 1.35,
+        childAspectRatio: 1.08,
       ),
       itemBuilder: (context, index) {
         return _SummaryCard(data: cards[index]);
@@ -142,14 +156,12 @@ class _SummaryGrid extends StatelessWidget {
 class _SummaryCard extends StatelessWidget {
   final _SummaryCardData data;
 
-  const _SummaryCard({
-    required this.data,
-  });
+  const _SummaryCard({required this.data});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(24),
@@ -158,26 +170,29 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            data.icon,
-            color: AppColors.black,
-          ),
+          Icon(data.icon, color: AppColors.black, size: 28),
           const Spacer(),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              data.value,
+              maxLines: 1,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
           Text(
-            data.value,
+            data.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            data.title,
-            style: const TextStyle(
               color: AppColors.textSecondary,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -243,10 +258,7 @@ class _ActionButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onTap,
         icon: Icon(icon),
-        label: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.black,
           side: const BorderSide(color: AppColors.border),
@@ -262,9 +274,7 @@ class _ActionButton extends StatelessWidget {
 class _StatusDistributionSection extends StatelessWidget {
   final List<AdminDashboardStatusCount> statusDistribution;
 
-  const _StatusDistributionSection({
-    required this.statusDistribution,
-  });
+  const _StatusDistributionSection({required this.statusDistribution});
 
   @override
   Widget build(BuildContext context) {
@@ -316,9 +326,7 @@ class _StatusDistributionSection extends StatelessWidget {
 class _TopItemsSection extends StatelessWidget {
   final List<AdminDashboardTopItem> topItems;
 
-  const _TopItemsSection({
-    required this.topItems,
-  });
+  const _TopItemsSection({required this.topItems});
 
   @override
   Widget build(BuildContext context) {
@@ -337,10 +345,7 @@ class _TopItemsSection extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        color: AppColors.black,
-                      ),
+                      const Icon(Icons.star_rounded, color: AppColors.black),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -370,9 +375,7 @@ class _TopItemsSection extends StatelessWidget {
 class _RecentBookingsSection extends StatelessWidget {
   final List<AdminDashboardRecentBooking> recentBookings;
 
-  const _RecentBookingsSection({
-    required this.recentBookings,
-  });
+  const _RecentBookingsSection({required this.recentBookings});
 
   @override
   Widget build(BuildContext context) {
@@ -434,10 +437,7 @@ class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _SectionCard({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -470,9 +470,7 @@ class _SectionCard extends StatelessWidget {
 class _SmallStatusBadge extends StatelessWidget {
   final String status;
 
-  const _SmallStatusBadge({
-    required this.status,
-  });
+  const _SmallStatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
@@ -515,9 +513,7 @@ class _SmallStatusBadge extends StatelessWidget {
 class _EmptyText extends StatelessWidget {
   final String text;
 
-  const _EmptyText({
-    required this.text,
-  });
+  const _EmptyText({required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -576,10 +572,7 @@ class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _ErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {

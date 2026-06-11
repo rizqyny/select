@@ -9,11 +9,7 @@ class CustomerItemCard extends StatelessWidget {
   final ItemModel item;
   final VoidCallback onTap;
 
-  const CustomerItemCard({
-    super.key,
-    required this.item,
-    required this.onTap,
-  });
+  const CustomerItemCard({super.key, required this.item, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +33,7 @@ class CustomerItemCard extends StatelessWidget {
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   color: AppColors.input,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(24),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: ClipRRect(
                   borderRadius: const BorderRadius.vertical(
@@ -82,20 +76,20 @@ class CustomerItemCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 14,
-                        height: 1.15,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const Spacer(),
-                    Text(
-                      CurrencyFormatter.dailyPrice(item.dailyPrice),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        CurrencyFormatter.dailyPrice(item.dailyPrice),
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -129,19 +123,14 @@ class _ImagePlaceholder extends StatelessWidget {
 class _StatusBadge extends StatelessWidget {
   final String status;
 
-  const _StatusBadge({
-    required this.status,
-  });
+  const _StatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
     final isAvailable = status == 'available';
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: isAvailable
             ? AppColors.success.withOpacity(0.12)
