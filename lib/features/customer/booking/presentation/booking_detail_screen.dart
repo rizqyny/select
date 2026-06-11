@@ -96,6 +96,39 @@ class BookingDetailScreen extends ConsumerWidget {
     }
   }
 
+  int _firstItemId(BookingModel booking) {
+    if (booking.items.isEmpty) return 0;
+
+    return booking.items.first.itemId;
+  }
+
+  Future<void> _openConditionVerification(
+    BuildContext context,
+    WidgetRef ref,
+    BookingModel booking,
+    String type,
+  ) async {
+    final itemId = _firstItemId(booking);
+
+    if (itemId == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data item booking tidak ditemukan.'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+      return;
+    }
+
+    final result = await context.push<bool>(
+      '/customer/verifications/condition/${booking.id}/$itemId/$type',
+    );
+
+    if (result == true && context.mounted) {
+      ref.read(bookingDetailControllerProvider(booking.id).notifier).refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailState = ref.watch(bookingDetailControllerProvider(bookingId));
@@ -204,6 +237,36 @@ class BookingDetailScreen extends ConsumerWidget {
                       onPressed: state.isCreatingPayment
                           ? null
                           : () => _createOrOpenPayment(context, ref, state),
+                    )
+                  : booking.status == 'approved'
+                  ? AppButton(
+                      text: 'Verifikasi Kondisi Awal',
+                      icon: Icons.fact_check_rounded,
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.black,
+                      onPressed: () {
+                        _openConditionVerification(
+                          context,
+                          ref,
+                          booking,
+                          'before_rent',
+                        );
+                      },
+                    )
+                  : booking.status == 'ongoing' || booking.status == 'active'
+                  ? AppButton(
+                      text: 'Verifikasi Kondisi Akhir',
+                      icon: Icons.assignment_turned_in_rounded,
+                      backgroundColor: AppColors.black,
+                      foregroundColor: AppColors.white,
+                      onPressed: () {
+                        _openConditionVerification(
+                          context,
+                          ref,
+                          booking,
+                          'after_rent',
+                        );
+                      },
                     )
                   : Text(
                       _bottomStatusMessage(booking.status),

@@ -19,6 +19,7 @@ import '../../features/customer/verification/presentation/identity_verification_
 import '../../data/models/admin_item_model.dart';
 import '../../features/admin/items/presentation/admin_item_form_screen.dart';
 import '../../features/admin/users/presentation/admin_users_screen.dart';
+import '../../features/customer/verification/presentation/condition_verification_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -101,6 +102,24 @@ final appRouter = GoRouter(
             int.tryParse(state.pathParameters['bookingId'] ?? '') ?? 0;
 
         return IdentityVerificationScreen(bookingId: bookingId);
+      },
+    ),
+    GoRoute(
+      path: '/customer/verifications/condition/:bookingId/:itemId/:type',
+      name: 'customer-condition-verification',
+      builder: (context, state) {
+        final bookingId =
+            int.tryParse(state.pathParameters['bookingId'] ?? '') ?? 0;
+
+        final itemId = int.tryParse(state.pathParameters['itemId'] ?? '') ?? 0;
+
+        final type = state.pathParameters['type'] ?? 'before_rent';
+
+        return ConditionVerificationScreen(
+          bookingId: bookingId,
+          itemId: itemId,
+          type: type,
+        );
       },
     ),
 
