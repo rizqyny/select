@@ -125,7 +125,13 @@ class BookingDetailScreen extends ConsumerWidget {
     );
 
     if (result == true && context.mounted) {
-      ref.read(bookingDetailControllerProvider(booking.id).notifier).refresh();
+      await ref
+          .read(bookingDetailControllerProvider(booking.id).notifier)
+          .markConditionVerificationSubmitted(type);
+
+      await ref
+          .read(bookingDetailControllerProvider(booking.id).notifier)
+          .refresh();
     }
   }
 
@@ -239,35 +245,53 @@ class BookingDetailScreen extends ConsumerWidget {
                           : () => _createOrOpenPayment(context, ref, state),
                     )
                   : booking.status == 'approved'
-                  ? AppButton(
-                      text: 'Verifikasi Kondisi Awal',
-                      icon: Icons.fact_check_rounded,
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.black,
-                      onPressed: () {
-                        _openConditionVerification(
-                          context,
-                          ref,
-                          booking,
-                          'before_rent',
-                        );
-                      },
-                    )
+                  ? state.hasSubmittedBeforeConditionVerification
+                        ? const Text(
+                            'Verifikasi kondisi awal sudah dikirim. Menunggu persetujuan admin.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          )
+                        : AppButton(
+                            text: 'Verifikasi Kondisi Awal',
+                            icon: Icons.fact_check_rounded,
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.black,
+                            onPressed: () {
+                              _openConditionVerification(
+                                context,
+                                ref,
+                                booking,
+                                'before_rent',
+                              );
+                            },
+                          )
                   : booking.status == 'ongoing' || booking.status == 'active'
-                  ? AppButton(
-                      text: 'Verifikasi Kondisi Akhir',
-                      icon: Icons.assignment_turned_in_rounded,
-                      backgroundColor: AppColors.black,
-                      foregroundColor: AppColors.white,
-                      onPressed: () {
-                        _openConditionVerification(
-                          context,
-                          ref,
-                          booking,
-                          'after_rent',
-                        );
-                      },
-                    )
+                  ? state.hasSubmittedAfterConditionVerification
+                        ? const Text(
+                            'Verifikasi kondisi akhir sudah dikirim. Menunggu persetujuan admin.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          )
+                        : AppButton(
+                            text: 'Verifikasi Kondisi Akhir',
+                            icon: Icons.assignment_turned_in_rounded,
+                            backgroundColor: AppColors.black,
+                            foregroundColor: AppColors.white,
+                            onPressed: () {
+                              _openConditionVerification(
+                                context,
+                                ref,
+                                booking,
+                                'after_rent',
+                              );
+                            },
+                          )
                   : Text(
                       _bottomStatusMessage(booking.status),
                       textAlign: TextAlign.center,
