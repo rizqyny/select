@@ -131,7 +131,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   color: AppColors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(46)),
                 ),
-                child: Container(
+                child: SingleChildScrollView(
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -231,22 +231,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
 
                         if (AppEnv.isGoogleConfigured) ...[
-                          const SizedBox(height: 22),
-                          const Text(
-                            '- Atau -',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          const SizedBox(height: 17),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Divider(
+                                  thickness: 1,
+                                  color: AppColors.border,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Text(
+                                  'Atau',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                child: Divider(
+                                  thickness: 1,
+                                  color: AppColors.border,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 2),
-                          AppButton(
-                            text: 'Login With Google',
-                            backgroundColor: AppColors.white,
-                            foregroundColor: AppColors.textPrimary,
-                            icon: Icons.g_mobiledata_rounded,
-                            isLoading: isLoading,
-                            onPressed: isLoading ? null : _loginWithGoogle,
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: isLoading ? null : _loginWithGoogle,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.white,
+                                foregroundColor: AppColors.textPrimary,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(color: Colors.grey.shade300),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    'assets/images/google_logo.webp',
+                                    width: 22,
+                                    height: 22,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Text(
+                                    'Login With Google',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
 
