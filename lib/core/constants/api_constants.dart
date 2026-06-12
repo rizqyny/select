@@ -94,4 +94,5 @@ class ApiConstants {
   static const registerDeviceToken = '/notifications/register-device';
 
   static const myProfile = '/users/me';
+  static const register = '/auth/register';
 }
