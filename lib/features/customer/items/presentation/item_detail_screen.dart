@@ -10,7 +10,6 @@ import '../../../../core/widgets/app_button.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/models/review_model.dart';
 import '../providers/item_detail_provider.dart';
-import '../../favorites/widgets/favorite_icon_button.dart';
 
 class ItemDetailScreen extends ConsumerWidget {
   final int itemId;
@@ -102,7 +101,6 @@ class ItemDetailScreen extends ConsumerWidget {
                             ),
                     ),
                   ),
-                  FavoriteIconButton(itemId: itemId),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: _ProductImage(item: item),
