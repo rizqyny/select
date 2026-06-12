@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:select/features/customer/profile/presentation/profile_screen.dart';
 
 import '../../data/models/admin_booking_model.dart';
 import '../../data/models/admin_condition_verification_model.dart';
@@ -26,7 +27,6 @@ import '../../features/customer/booking/presentation/customer_bookings_screen.da
 import '../../features/customer/booking/presentation/payment_webview_screen.dart';
 import '../../features/customer/home/customer_home_screen.dart';
 import '../../features/customer/items/presentation/item_detail_screen.dart';
-import '../../features/customer/notifications/presentation/notifications_screen.dart';
 import '../../features/customer/presentation/customer_shell_screen.dart';
 import '../../features/customer/reviews/presentation/review_form_screen.dart';
 import '../../features/customer/verification/presentation/condition_verification_screen.dart';
@@ -68,9 +68,9 @@ final appRouter = GoRouter(
           builder: (context, state) => const CustomerBookingsScreen(),
         ),
         GoRoute(
-          path: '/customer/notifications',
-          name: 'customer-notifications',
-          builder: (context, state) => const NotificationsScreen(),
+          path: '/customer/profile',
+          name: 'customer-profile',
+          builder: (context, state) => const ProfileScreen(),
         ),
       ],
     ),

@@ -18,7 +18,7 @@ class CustomerShellScreen extends StatelessWidget {
       return 1;
     }
 
-    if (location.startsWith('/customer/notifications')) {
+    if (location.startsWith('/customer/profile')) {
       return 2;
     }
 
@@ -34,7 +34,7 @@ class CustomerShellScreen extends StatelessWidget {
         context.go('/customer/bookings');
         break;
       case 2:
-        context.go('/customer/notifications');
+        context.go('/customer/profile');
         break;
     }
   }
@@ -103,9 +103,9 @@ class CustomerShellScreen extends StatelessWidget {
                   label: 'Pesanan',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.notifications_none_rounded),
-                  selectedIcon: Icon(Icons.notifications_rounded),
-                  label: 'Notif',
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person_rounded),
+                  label: 'Profile',
                 ),
               ],
             ),

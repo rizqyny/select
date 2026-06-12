@@ -134,49 +134,11 @@ class BookingDetailScreen extends ConsumerWidget {
     if (result == true && context.mounted) {
       await ref
           .read(bookingDetailControllerProvider(booking.id).notifier)
-          .markConditionVerificationSubmitted("");
+          .markConditionVerificationSubmitted("before_rent");
 
       await ref
           .read(bookingDetailControllerProvider(booking.id).notifier)
           .refresh();
-    }
-  }
-
-  Future<void> _openReviewForm(
-    BuildContext context,
-    WidgetRef ref,
-    BookingModel booking,
-  ) async {
-    final itemId = _firstItemId(booking);
-
-    if (itemId == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data item booking tidak ditemukan.'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
-      return;
-    }
-
-    final result = await context.push<bool>(
-      '/customer/reviews/create/${booking.id}/$itemId',
-    );
-
-    if (result == true && context.mounted) {
-      await ref
-          .read(bookingDetailControllerProvider(booking.id).notifier)
-          .markReviewSubmitted();
-
-      await ref
-          .read(bookingDetailControllerProvider(booking.id).notifier)
-          .refresh();
-
-      if (!context.mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Terima kasih sudah memberi review.')),
-      );
     }
   }
 
@@ -281,25 +243,15 @@ class BookingDetailScreen extends ConsumerWidget {
                       ),
                     )
                   : booking.status == 'completed'
-                  ? state.hasSubmittedReview
-                        ? const Text(
-                            'Review barang sudah dikirim. Terima kasih atas penilaianmu.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.success,
-                              fontWeight: FontWeight.w900,
-                              height: 1.4,
-                            ),
-                          )
-                        : AppButton(
-                            text: 'Review Barang',
-                            icon: Icons.star_rounded,
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.black,
-                            onPressed: () {
-                              _openReviewForm(context, ref, booking);
-                            },
-                          )
+                  ? const Text(
+                      'Booking sudah selesai.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w900,
+                        height: 1.4,
+                      ),
+                    )
                   : Text(
                       _bottomStatusMessage(booking.status),
                       textAlign: TextAlign.center,
