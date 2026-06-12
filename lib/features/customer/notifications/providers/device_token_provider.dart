@@ -12,8 +12,8 @@ final fcmServiceProvider = Provider<FcmService>((ref) {
 
 final deviceTokenControllerProvider =
     AsyncNotifierProvider<DeviceTokenController, bool>(
-  DeviceTokenController.new,
-);
+      DeviceTokenController.new,
+    );
 
 class DeviceTokenController extends AsyncNotifier<bool> {
   FcmService get _fcmService => ref.read(fcmServiceProvider);

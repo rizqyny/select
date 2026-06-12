@@ -17,11 +17,7 @@ class NotificationRepository {
     try {
       final response = await _dio.get(
         ApiConstants.myNotifications,
-        queryParameters: {
-          'is_read': ?isRead,
-          'page': page,
-          'limit': limit,
-        },
+        queryParameters: {'is_read': ?isRead, 'page': page, 'limit': limit},
       );
 
       final rawList = _extractList(response.data);
