@@ -26,6 +26,7 @@ import '../../features/admin/verifications/presentation/admin_condition_verifica
 import '../../features/admin/verifications/presentation/admin_condition_verifications_screen.dart';
 import '../../features/customer/reviews/presentation/review_form_screen.dart';
 import '../../features/customer/notifications/presentation/notifications_screen.dart';
+import '../../features/customer/profile/presentation/profile_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -145,6 +146,11 @@ final appRouter = GoRouter(
       name: 'customer-notifications',
       builder: (context, state) => const NotificationsScreen(),
     ),
+    GoRoute(
+      path: '/customer/profile',
+      name: 'customer-profile',
+      builder: (context, state) => const ProfileScreen(),
+    ),
 
     // =========================
     // ADMIN MAIN ROUTES WITH NAVBAR
@@ -204,6 +210,11 @@ final appRouter = GoRouter(
           name: 'admin-condition-verifications',
           builder: (context, state) =>
               const AdminConditionVerificationsScreen(),
+        ),
+        GoRoute(
+          path: '/admin/profile',
+          name: 'admin-profile',
+          builder: (context, state) => const ProfileScreen(),
         ),
       ],
     ),
