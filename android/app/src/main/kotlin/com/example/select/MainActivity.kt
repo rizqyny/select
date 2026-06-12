@@ -1,4 +1,4 @@
-package com.example.select
+package com.adrian.select
 
 import io.flutter.embedding.android.FlutterActivity
 

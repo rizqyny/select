@@ -14,11 +14,9 @@ class AuthRepository {
 
   bool _googleInitialized = false;
 
-  AuthRepository({
-    required Dio dio,
-    required SupabaseClient supabase,
-  })  : _dio = dio,
-        _supabase = supabase;
+  AuthRepository({required Dio dio, required SupabaseClient supabase})
+    : _dio = dio,
+      _supabase = supabase;
 
   bool get hasSession => _supabase.auth.currentSession != null;
 
@@ -51,9 +49,7 @@ class AuthRepository {
     if (_googleInitialized) return;
 
     if (!AppEnv.isGoogleConfigured) {
-      throw const ApiException(
-        message: 'Google Login belum dikonfigurasi.',
-      );
+      throw const ApiException(message: 'Google Login belum dikonfigurasi.');
     }
 
     await GoogleSignIn.instance.initialize(
@@ -73,19 +69,25 @@ class AuthRepository {
         );
       }
 
-      final googleAccount = await GoogleSignIn.instance.authenticate();
-      final googleAuthentication = googleAccount.authentication;
+      // Membersihkan session Google lama agar tidak kena cached account error.
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {}
 
+      final googleAccount = await GoogleSignIn.instance.authenticate();
+
+      final googleAuthentication = googleAccount.authentication;
       final idToken = googleAuthentication.idToken;
 
       if (idToken == null || idToken.isEmpty) {
         throw const ApiException(
-          message: 'ID Token Google tidak ditemukan.',
+          message:
+              'ID Token Google tidak ditemukan. Pastikan GOOGLE_WEB_CLIENT_ID memakai Web Client ID.',
         );
       }
 
       final googleAuthorization = await googleAccount.authorizationClient
-          .authorizationForScopes(<String>[]);
+          .authorizationForScopes(<String>['email', 'profile']);
 
       await _supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
@@ -96,6 +98,8 @@ class AuthRepository {
       return getCurrentUser();
     } on ApiException {
       rethrow;
+    } on GoogleSignInException catch (error) {
+      throw ApiException(message: _mapGoogleSignInError(error));
     } on AuthException catch (error) {
       throw ApiException(message: _mapAuthError(error.message));
     } catch (error) {
@@ -114,18 +118,13 @@ class AuthRepository {
         );
       }
 
-      final apiResponse = ApiResponse<AppUser>.fromJson(
-        body,
-        (json) {
-          if (json is Map<String, dynamic>) {
-            return AppUser.fromJson(json);
-          }
+      final apiResponse = ApiResponse<AppUser>.fromJson(body, (json) {
+        if (json is Map<String, dynamic>) {
+          return AppUser.fromJson(json);
+        }
 
-          throw const ApiException(
-            message: 'Data profil tidak valid.',
-          );
-        },
-      );
+        throw const ApiException(message: 'Data profil tidak valid.');
+      });
 
       final user = apiResponse.data;
 
@@ -138,9 +137,7 @@ class AuthRepository {
       }
 
       if (!user.isActive) {
-        throw const ApiException(
-          message: 'Akun kamu sedang tidak aktif.',
-        );
+        throw const ApiException(message: 'Akun kamu sedang tidak aktif.');
       }
 
       return user;
@@ -153,6 +150,25 @@ class AuthRepository {
 
       throw ApiException.fromDio(error);
     }
+  }
+
+  String _mapGoogleSignInError(GoogleSignInException error) {
+    final raw = error.toString();
+    final lower = raw.toLowerCase();
+
+    if (lower.contains('account reauth failed') || lower.contains('[16]')) {
+      return 'Login Google gagal karena konfigurasi SHA-1/SHA-256 atau package name belum cocok. Tambahkan SHA-1 dan SHA-256 debug ke Firebase, lalu download ulang google-services.json.';
+    }
+
+    if (lower.contains('canceled')) {
+      return 'Login Google dibatalkan.';
+    }
+
+    if (lower.contains('network')) {
+      return 'Koneksi internet bermasalah saat login Google.';
+    }
+
+    return 'Login Google gagal: $raw';
   }
 
   Future<void> signOut() async {
