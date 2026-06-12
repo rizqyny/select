@@ -6,6 +6,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_button.dart';
 import '../providers/register_provider.dart';
 import '../../../core/env/app_env.dart';
+import '../../../data/models/app_user.dart';
+import '../providers/auth_provider.dart';
+import '../../../core/utils/error_message.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -53,6 +56,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
       context.go('/login');
+    }
+  }
+
+  Future<void> _registerWithGoogle() async {
+    try {
+      final user = await ref
+          .read(authControllerProvider.notifier)
+          .signInWithGoogle();
+
+      if (!mounted) return;
+
+      _redirectByRole(user);
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(readableError(error)),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
+  }
+
+  void _redirectByRole(AppUser user) {
+    switch (user.role) {
+      case UserRole.admin:
+        context.go('/admin/dashboard');
+        break;
+      case UserRole.customer:
+        context.go('/customer/home');
+        break;
+      case UserRole.unknown:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Role user tidak dikenali. Hubungi admin.'),
+          ),
+        );
+        break;
     }
   }
 
@@ -263,9 +305,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () {
-                              // isi nanti jika sudah membuat register dengan Google
-                            },
+                            onPressed: state.isSubmitting
+                                ? null
+                                : _registerWithGoogle,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.white,
                               foregroundColor: AppColors.textPrimary,
