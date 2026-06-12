@@ -19,7 +19,7 @@ class RegisterRepository {
         ApiConstants.register,
         data: {
           'full_name': fullName.trim(),
-          'email': email.trim(),
+          'email': email.trim().toLowerCase(),
           'password': password,
           'phone': phone.trim(),
         },
@@ -39,11 +39,15 @@ class RegisterRepository {
     final data = error.response?.data;
 
     if (data is Map<String, dynamic>) {
+      final message =
+          data['message'] ??
+          data['error'] ??
+          data['details'] ??
+          data['hint'] ??
+          data.toString();
+
       return ApiException(
-        message:
-            data['message']?.toString() ??
-            data['error']?.toString() ??
-            data.toString(),
+        message: message.toString(),
         statusCode: error.response?.statusCode,
       );
     }

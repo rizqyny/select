@@ -1,252 +1,148 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/widgets/app_button.dart';
-import '../providers/register_provider.dart';
+import '../../../data/providers/repository_providers.dart';
+import '../../../data/repositories/register_repository.dart';
 
-class RegisterScreen extends ConsumerStatefulWidget {
-  const RegisterScreen({super.key});
+class RegisterState {
+  final bool isSubmitting;
+  final String? errorMessage;
 
-  @override
-  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
+  const RegisterState({this.isSubmitting = false, this.errorMessage});
+
+  RegisterState copyWith({bool? isSubmitting, String? errorMessage}) {
+    return RegisterState(
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      errorMessage: errorMessage,
+    );
+  }
 }
 
-class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _fullNameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+final registerControllerProvider =
+    AsyncNotifierProvider<RegisterController, RegisterState>(
+      RegisterController.new,
+    );
 
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+class RegisterController extends AsyncNotifier<RegisterState> {
+  RegisterRepository get _repository => ref.read(registerRepositoryProvider);
 
   @override
-  void dispose() {
-    _fullNameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
+  FutureOr<RegisterState> build() {
+    return const RegisterState();
   }
 
-  Future<void> _submit() async {
-    final success = await ref
-        .read(registerControllerProvider.notifier)
-        .register(
-          fullName: _fullNameController.text,
-          email: _emailController.text,
-          password: _passwordController.text,
-          confirmPassword: _confirmPasswordController.text,
-          phone: _phoneController.text,
-        );
+  Future<bool> register({
+    required String fullName,
+    required String email,
+    required String password,
+    required String confirmPassword,
+    required String phone,
+  }) async {
+    final current = state.asData?.value ?? const RegisterState();
 
-    if (!mounted) return;
+    final cleanFullName = fullName.trim();
+    final cleanPhone = phone.trim();
+    final cleanEmail = _normalizeEmail(email);
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registrasi berhasil. Silakan login.')),
+    if (cleanFullName.isEmpty) {
+      state = AsyncData(
+        current.copyWith(errorMessage: 'Nama lengkap tidak boleh kosong.'),
+      );
+      return false;
+    }
+
+    if (cleanPhone.isEmpty) {
+      state = AsyncData(
+        current.copyWith(errorMessage: 'Nomor HP tidak boleh kosong.'),
+      );
+      return false;
+    }
+
+    if (cleanEmail.isEmpty) {
+      state = AsyncData(
+        current.copyWith(errorMessage: 'Email tidak boleh kosong.'),
+      );
+      return false;
+    }
+
+    if (!_isValidEmail(cleanEmail)) {
+      state = AsyncData(
+        current.copyWith(
+          errorMessage: 'Format email tidak valid. Contoh: nama@gmail.com',
+        ),
+      );
+      return false;
+    }
+
+    if (password.length < 6) {
+      state = AsyncData(
+        current.copyWith(errorMessage: 'Password minimal 6 karakter.'),
+      );
+      return false;
+    }
+
+    if (password != confirmPassword) {
+      state = AsyncData(
+        current.copyWith(errorMessage: 'Konfirmasi password tidak sama.'),
+      );
+      return false;
+    }
+
+    state = const AsyncData(
+      RegisterState(isSubmitting: true, errorMessage: null),
+    );
+
+    try {
+      await _repository.register(
+        fullName: cleanFullName,
+        email: cleanEmail,
+        password: password,
+        phone: cleanPhone,
       );
 
-      context.go('/login');
+      state = const AsyncData(RegisterState());
+      return true;
+    } catch (error) {
+      state = AsyncData(
+        RegisterState(
+          isSubmitting: false,
+          errorMessage: _cleanRegisterError(error.toString()),
+        ),
+      );
+      return false;
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final registerState = ref.watch(registerControllerProvider);
+  String _normalizeEmail(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
+  }
 
-    final state = registerState.asData?.value ?? const RegisterState();
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: AppColors.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withOpacity(0.06),
-                    blurRadius: 24,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: const Icon(
-                        Icons.person_add_alt_1_rounded,
-                        color: AppColors.black,
-                        size: 34,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  const Text(
-                    'Buat Akun SELECT',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Daftar sebagai customer untuk mulai menyewa alat elektronik.',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  TextField(
-                    controller: _fullNameController,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Nama Lengkap',
-                      prefixIcon: Icon(Icons.person_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Nomor HP',
-                      prefixIcon: Icon(Icons.phone_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_rounded),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.next,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_rounded),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  TextField(
-                    controller: _confirmPasswordController,
-                    obscureText: _obscureConfirmPassword,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      labelText: 'Konfirmasi Password',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _obscureConfirmPassword = !_obscureConfirmPassword;
-                          });
-                        },
-                        icon: Icon(
-                          _obscureConfirmPassword
-                              ? Icons.visibility_off_rounded
-                              : Icons.visibility_rounded,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  if (state.errorMessage != null) ...[
-                    const SizedBox(height: 14),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.danger.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Text(
-                        state.errorMessage!,
-                        style: const TextStyle(
-                          color: AppColors.danger,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 22),
-                  AppButton(
-                    text: state.isSubmitting ? 'Mendaftarkan...' : 'Daftar',
-                    icon: Icons.person_add_alt_1_rounded,
-                    backgroundColor: AppColors.black,
-                    foregroundColor: AppColors.white,
-                    isLoading: state.isSubmitting,
-                    onPressed: state.isSubmitting ? null : _submit,
-                  ),
-                  const SizedBox(height: 14),
-
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        context.go('/login');
-                      },
-                      child: const Text(
-                        'Sudah punya akun? Login',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
+  bool _isValidEmail(String value) {
+    final regex = RegExp(
+      r'^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$',
     );
+
+    return regex.hasMatch(value);
+  }
+
+  String _cleanRegisterError(String message) {
+    final lower = message.toLowerCase();
+
+    if (lower.contains('email rate limit exceeded')) {
+      return 'Terlalu banyak percobaan register/email. Tunggu beberapa menit atau gunakan email lain.';
+    }
+
+    if (lower.contains('email') && lower.contains('invalid')) {
+      return 'Email tidak valid. Pastikan format email benar, contoh: nama@gmail.com';
+    }
+
+    if (lower.contains('already') ||
+        lower.contains('registered') ||
+        lower.contains('exists')) {
+      return 'Email sudah terdaftar. Silakan login atau gunakan email lain.';
+    }
+
+    return message.replaceFirst('Exception: ', '');
   }
 }
