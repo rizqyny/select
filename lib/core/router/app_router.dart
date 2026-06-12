@@ -1,32 +1,36 @@
-import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../data/models/admin_booking_model.dart';
+import '../../data/models/admin_condition_verification_model.dart';
 import '../../data/models/admin_identity_verification_model.dart';
+import '../../data/models/admin_item_model.dart';
+
 import '../../features/admin/bookings/presentation/admin_booking_detail_screen.dart';
 import '../../features/admin/bookings/presentation/admin_bookings_screen.dart';
 import '../../features/admin/common/admin_shell_screen.dart';
 import '../../features/admin/dashboard/admin_dashboard_screen.dart';
+import '../../features/admin/items/presentation/admin_item_form_screen.dart';
+import '../../features/admin/items/presentation/admin_items_screen.dart';
+import '../../features/admin/users/presentation/admin_users_screen.dart';
+import '../../features/admin/verifications/presentation/admin_condition_verification_detail_screen.dart';
+import '../../features/admin/verifications/presentation/admin_condition_verifications_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verification_detail_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verifications_screen.dart';
-import '../../features/admin/items/presentation/admin_items_screen.dart';
+
 import '../../features/auth/presentation/login_screen.dart';
+
 import '../../features/customer/booking/presentation/booking_detail_screen.dart';
 import '../../features/customer/booking/presentation/create_booking_screen.dart';
 import '../../features/customer/booking/presentation/customer_bookings_screen.dart';
 import '../../features/customer/booking/presentation/payment_webview_screen.dart';
 import '../../features/customer/home/customer_home_screen.dart';
 import '../../features/customer/items/presentation/item_detail_screen.dart';
-import '../../features/customer/verification/presentation/identity_verification_screen.dart';
-import '../../data/models/admin_item_model.dart';
-import '../../features/admin/items/presentation/admin_item_form_screen.dart';
-import '../../features/admin/users/presentation/admin_users_screen.dart';
-import '../../features/customer/verification/presentation/condition_verification_screen.dart';
-import '../../data/models/admin_condition_verification_model.dart';
-import '../../features/admin/verifications/presentation/admin_condition_verification_detail_screen.dart';
-import '../../features/admin/verifications/presentation/admin_condition_verifications_screen.dart';
-import '../../features/customer/reviews/presentation/review_form_screen.dart';
 import '../../features/customer/notifications/presentation/notifications_screen.dart';
-import '../../features/customer/profile/presentation/profile_screen.dart';
+import '../../features/customer/presentation/customer_shell_screen.dart';
+import '../../features/customer/reviews/presentation/review_form_screen.dart';
+import '../../features/customer/verification/presentation/condition_verification_screen.dart';
+import '../../features/customer/verification/presentation/identity_verification_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -46,13 +50,34 @@ final appRouter = GoRouter(
     ),
 
     // =========================
-    // CUSTOMER ROUTES
+    // CUSTOMER MAIN ROUTES WITH NAVBAR
     // =========================
-    GoRoute(
-      path: '/customer/home',
-      name: 'customer-home',
-      builder: (context, state) => const CustomerHomeScreen(),
+    ShellRoute(
+      builder: (context, state, child) {
+        return CustomerShellScreen(location: state.uri.path, child: child);
+      },
+      routes: [
+        GoRoute(
+          path: '/customer/home',
+          name: 'customer-home',
+          builder: (context, state) => const CustomerHomeScreen(),
+        ),
+        GoRoute(
+          path: '/customer/bookings',
+          name: 'customer-bookings',
+          builder: (context, state) => const CustomerBookingsScreen(),
+        ),
+        GoRoute(
+          path: '/customer/notifications',
+          name: 'customer-notifications',
+          builder: (context, state) => const NotificationsScreen(),
+        ),
+      ],
     ),
+
+    // =========================
+    // CUSTOMER DETAIL / ACTION ROUTES WITHOUT NAVBAR
+    // =========================
     GoRoute(
       path: '/customer/items/:id',
       name: 'customer-item-detail',
@@ -70,11 +95,6 @@ final appRouter = GoRouter(
 
         return CreateBookingScreen(itemId: itemId);
       },
-    ),
-    GoRoute(
-      path: '/customer/bookings',
-      name: 'customer-bookings',
-      builder: (context, state) => const CustomerBookingsScreen(),
     ),
     GoRoute(
       path: '/customer/bookings/:id',
@@ -117,9 +137,7 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final bookingId =
             int.tryParse(state.pathParameters['bookingId'] ?? '') ?? 0;
-
         final itemId = int.tryParse(state.pathParameters['itemId'] ?? '') ?? 0;
-
         final type = state.pathParameters['type'] ?? 'before_rent';
 
         return ConditionVerificationScreen(
@@ -135,21 +153,10 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final bookingId =
             int.tryParse(state.pathParameters['bookingId'] ?? '') ?? 0;
-
         final itemId = int.tryParse(state.pathParameters['itemId'] ?? '') ?? 0;
 
         return ReviewFormScreen(bookingId: bookingId, itemId: itemId);
       },
-    ),
-    GoRoute(
-      path: '/customer/notifications',
-      name: 'customer-notifications',
-      builder: (context, state) => const NotificationsScreen(),
-    ),
-    GoRoute(
-      path: '/customer/profile',
-      name: 'customer-profile',
-      builder: (context, state) => const ProfileScreen(),
     ),
 
     // =========================
@@ -176,51 +183,21 @@ final appRouter = GoRouter(
           builder: (context, state) => const AdminIdentityVerificationsScreen(),
         ),
         GoRoute(
-          path: '/admin/items',
-          name: 'admin-items',
-          builder: (context, state) => const AdminItemsScreen(),
-        ),
-        GoRoute(
-          path: '/admin/items/create',
-          name: 'admin-create-item',
-          builder: (context, state) {
-            return const AdminItemFormScreen();
-          },
-        ),
-        GoRoute(
-          path: '/admin/items/:id/edit',
-          name: 'admin-edit-item',
-          builder: (context, state) {
-            final item = state.extra as AdminItemModel?;
-
-            if (item == null) {
-              return const AdminItemFormScreen();
-            }
-
-            return AdminItemFormScreen(item: item);
-          },
-        ),
-        GoRoute(
-          path: '/admin/users',
-          name: 'admin-users',
-          builder: (context, state) => const AdminUsersScreen(),
-        ),
-        GoRoute(
           path: '/admin/verifications/condition',
           name: 'admin-condition-verifications',
           builder: (context, state) =>
               const AdminConditionVerificationsScreen(),
         ),
         GoRoute(
-          path: '/admin/profile',
-          name: 'admin-profile',
-          builder: (context, state) => const ProfileScreen(),
+          path: '/admin/items',
+          name: 'admin-items',
+          builder: (context, state) => const AdminItemsScreen(),
         ),
       ],
     ),
 
     // =========================
-    // ADMIN DETAIL ROUTES
+    // ADMIN DETAIL / ACTION ROUTES WITHOUT NAVBAR
     // =========================
     GoRoute(
       path: '/admin/bookings/:id',
@@ -264,6 +241,31 @@ final appRouter = GoRouter(
           body: Center(child: Text('Data verifikasi kondisi tidak ditemukan.')),
         );
       },
+    ),
+    GoRoute(
+      path: '/admin/items/create',
+      name: 'admin-create-item',
+      builder: (context, state) {
+        return const AdminItemFormScreen();
+      },
+    ),
+    GoRoute(
+      path: '/admin/items/:id/edit',
+      name: 'admin-edit-item',
+      builder: (context, state) {
+        final item = state.extra as AdminItemModel?;
+
+        if (item == null) {
+          return const AdminItemFormScreen();
+        }
+
+        return AdminItemFormScreen(item: item);
+      },
+    ),
+    GoRoute(
+      path: '/admin/users',
+      name: 'admin-users',
+      builder: (context, state) => const AdminUsersScreen(),
     ),
   ],
 );
