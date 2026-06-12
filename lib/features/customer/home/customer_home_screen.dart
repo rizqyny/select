@@ -260,7 +260,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               _showComingSoon('Favorit');
               break;
             case 3:
-              _showComingSoon('Profil');
+              context.push('/customer/profile');
               break;
           }
         },
