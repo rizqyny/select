@@ -18,8 +18,12 @@ class CustomerShellScreen extends StatelessWidget {
       return 1;
     }
 
-    if (location.startsWith('/customer/profile')) {
+    if (location.startsWith('/customer/favorites')) {
       return 2;
+    }
+
+    if (location.startsWith('/customer/profile')) {
+      return 3;
     }
 
     return 0;
@@ -34,6 +38,9 @@ class CustomerShellScreen extends StatelessWidget {
         context.go('/customer/bookings');
         break;
       case 2:
+        context.go('/customer/favorites');
+        break;
+      case 3:
         context.go('/customer/profile');
         break;
     }
@@ -48,7 +55,12 @@ class CustomerShellScreen extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.white,
-            border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+            border: Border(
+              top: BorderSide(
+                color: AppColors.border,
+                width: 1,
+              ),
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColors.black.withOpacity(0.08),
@@ -61,27 +73,32 @@ class CustomerShellScreen extends StatelessWidget {
             data: NavigationBarThemeData(
               backgroundColor: AppColors.white,
               indicatorColor: AppColors.primary,
-              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
-                states,
-              ) {
-                final isSelected = states.contains(WidgetState.selected);
+              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+                (states) {
+                  final isSelected = states.contains(WidgetState.selected);
 
-                return TextStyle(
-                  color: isSelected ? AppColors.black : AppColors.textSecondary,
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
-                );
-              }),
-              iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((
-                states,
-              ) {
-                final isSelected = states.contains(WidgetState.selected);
+                  return TextStyle(
+                    color: isSelected
+                        ? AppColors.black
+                        : AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight:
+                        isSelected ? FontWeight.w900 : FontWeight.w700,
+                  );
+                },
+              ),
+              iconTheme: WidgetStateProperty.resolveWith<IconThemeData>(
+                (states) {
+                  final isSelected = states.contains(WidgetState.selected);
 
-                return IconThemeData(
-                  color: isSelected ? AppColors.black : AppColors.textSecondary,
-                  size: 24,
-                );
-              }),
+                  return IconThemeData(
+                    color: isSelected
+                        ? AppColors.black
+                        : AppColors.textSecondary,
+                    size: 24,
+                  );
+                },
+              ),
             ),
             child: NavigationBar(
               selectedIndex: _selectedIndex,
@@ -103,7 +120,12 @@ class CustomerShellScreen extends StatelessWidget {
                   label: 'Pesanan',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.person_outline),
+                  icon: Icon(Icons.favorite_border_rounded),
+                  selectedIcon: Icon(Icons.favorite_rounded),
+                  label: 'Favorit',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline_rounded),
                   selectedIcon: Icon(Icons.person_rounded),
                   label: 'Profile',
                 ),

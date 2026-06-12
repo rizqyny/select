@@ -36,11 +36,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      final user =
-          await ref.read(authControllerProvider.notifier).signInWithEmailPassword(
-                email: _emailController.text,
-                password: _passwordController.text,
-              );
+      final user = await ref
+          .read(authControllerProvider.notifier)
+          .signInWithEmailPassword(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
 
       if (!mounted) return;
       _redirectByRole(user);
@@ -58,8 +59,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _loginWithGoogle() async {
     try {
-      final user =
-          await ref.read(authControllerProvider.notifier).signInWithGoogle();
+      final user = await ref
+          .read(authControllerProvider.notifier)
+          .signInWithGoogle();
 
       if (!mounted) return;
       _redirectByRole(user);
@@ -127,9 +129,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 padding: const EdgeInsets.fromLTRB(28, 30, 28, 24),
                 decoration: const BoxDecoration(
                   color: AppColors.white,
-                  borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(46),
-                  ),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(46)),
                 ),
                 child: SingleChildScrollView(
                   child: Form(
@@ -227,8 +227,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.black,
                           isLoading: isLoading,
-                          onPressed:
-                              isLoading ? null : _loginWithEmailPassword,
+                          onPressed: isLoading ? null : _loginWithEmailPassword,
                         ),
 
                         if (AppEnv.isGoogleConfigured) ...[
@@ -260,6 +259,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             color: AppColors.textSecondary,
                             fontSize: 12,
                             height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Center(
+                          child: TextButton(
+                            onPressed: () {
+                              context.push('/register');
+                            },
+                            child: const Text(
+                              'Belum punya akun? Daftar',
+                              style: TextStyle(fontWeight: FontWeight.w900),
+                            ),
                           ),
                         ),
                       ],

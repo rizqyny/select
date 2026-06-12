@@ -20,6 +20,7 @@ import '../../features/admin/verifications/presentation/admin_identity_verificat
 import '../../features/admin/verifications/presentation/admin_identity_verifications_screen.dart';
 
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/register_screen.dart';
 
 import '../../features/customer/booking/presentation/booking_detail_screen.dart';
 import '../../features/customer/booking/presentation/create_booking_screen.dart';
@@ -31,6 +32,7 @@ import '../../features/customer/presentation/customer_shell_screen.dart';
 import '../../features/customer/reviews/presentation/review_form_screen.dart';
 import '../../features/customer/verification/presentation/condition_verification_screen.dart';
 import '../../features/customer/verification/presentation/identity_verification_screen.dart';
+import '../../features/customer/favorites/presentation/favorites_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -47,6 +49,12 @@ final appRouter = GoRouter(
       path: '/login',
       name: 'login',
       builder: (context, state) => const LoginScreen(),
+    ),
+
+    GoRoute(
+      path: '/register',
+      name: 'register',
+      builder: (context, state) => const RegisterScreen(),
     ),
 
     // =========================
@@ -66,6 +74,11 @@ final appRouter = GoRouter(
           path: '/customer/bookings',
           name: 'customer-bookings',
           builder: (context, state) => const CustomerBookingsScreen(),
+        ),
+        GoRoute(
+          path: '/customer/favorites',
+          name: 'customer-favorites',
+          builder: (context, state) => const FavoritesScreen(),
         ),
         GoRoute(
           path: '/customer/profile',
