@@ -16,7 +16,6 @@ import '../repositories/admin_condition_verification_repository.dart';
 import '../repositories/review_repository.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/profile_repository.dart';
-import '../repositories/favorite_repository.dart';
 import '../repositories/register_repository.dart';
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
