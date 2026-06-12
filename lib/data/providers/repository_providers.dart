@@ -16,6 +16,7 @@ import '../repositories/admin_condition_verification_repository.dart';
 import '../repositories/review_repository.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/profile_repository.dart';
+import '../repositories/favorite_repository.dart';
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(dio: ref.watch(dioProvider));
@@ -79,4 +80,8 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository(dio: ref.watch(dioProvider));
+});
+
+final favoriteRepositoryProvider = Provider<FavoriteRepository>((ref) {
+  return FavoriteRepository(dio: ref.watch(dioProvider));
 });

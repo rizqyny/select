@@ -2,68 +2,23 @@ import 'package:dio/dio.dart';
 
 import '../../core/constants/api_constants.dart';
 import '../../core/errors/api_exception.dart';
+import '../models/favorite_model.dart';
 
 class FavoriteRepository {
   final Dio _dio;
 
   const FavoriteRepository({required Dio dio}) : _dio = dio;
 
-  Future<List<int>> fetchMyFavoriteItemIds() async {
+  Future<List<FavoriteItemModel>> fetchMyFavorites() async {
     try {
       final response = await _dio.get(ApiConstants.myFavorites);
-      final body = response.data;
+      final list = _extractList(response.data);
 
-      Object? data = body;
-
-      if (body is Map<String, dynamic>) {
-        data = body['data'];
-      }
-
-      if (data is! List) {
-        return <int>[];
-      }
-
-      final ids = <int>[];
-
-      for (final item in data) {
-        if (item is! Map<String, dynamic>) continue;
-
-        final directItemId = _toIntNullable(item['item_id']);
-        if (directItemId != null) {
-          ids.add(directItemId);
-          continue;
-        }
-
-        final nestedItem = item['item'];
-        if (nestedItem is Map<String, dynamic>) {
-          final nestedItemId = _toIntNullable(nestedItem['id']);
-          if (nestedItemId != null) {
-            ids.add(nestedItemId);
-            continue;
-          }
-        }
-
-        final nestedItems = item['items'];
-        if (nestedItems is Map<String, dynamic>) {
-          final nestedItemId = _toIntNullable(nestedItems['id']);
-          if (nestedItemId != null) {
-            ids.add(nestedItemId);
-            continue;
-          }
-        }
-
-        final directId = _toIntNullable(item['id']);
-        final hasItemShape =
-            item.containsKey('name') ||
-            item.containsKey('daily_price') ||
-            item.containsKey('category_id');
-
-        if (directId != null && hasItemShape) {
-          ids.add(directId);
-        }
-      }
-
-      return ids.toSet().toList();
+      return list
+          .whereType<Map<String, dynamic>>()
+          .map(FavoriteItemModel.fromJson)
+          .where((item) => item.itemId != 0)
+          .toList();
     } on DioException catch (error) {
       throw _handleDioError(error);
     }
@@ -85,11 +40,27 @@ class FavoriteRepository {
     }
   }
 
-  int? _toIntNullable(Object? value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value);
-    return null;
+  List<dynamic> _extractList(Object? body) {
+    if (body is List) return body;
+
+    if (body is Map<String, dynamic>) {
+      final data = body['data'];
+
+      if (data is List) return data;
+
+      if (data is Map<String, dynamic>) {
+        final nested =
+            data['favorites'] ??
+            data['items'] ??
+            data['data'] ??
+            data['rows'] ??
+            data['results'];
+
+        if (nested is List) return nested;
+      }
+    }
+
+    return <dynamic>[];
   }
 
   ApiException _handleDioError(DioException error) {
@@ -97,6 +68,18 @@ class FavoriteRepository {
 
     if (err is ApiException) {
       return err;
+    }
+
+    final data = error.response?.data;
+
+    if (data is Map<String, dynamic>) {
+      return ApiException(
+        message:
+            data['message']?.toString() ??
+            data['error']?.toString() ??
+            data.toString(),
+        statusCode: error.response?.statusCode,
+      );
     }
 
     return ApiException.fromDio(error);
