@@ -123,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
             Expanded(
-              flex: 5,
+              flex: 7,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(28, 30, 28, 24),
@@ -131,7 +131,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   color: AppColors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(46)),
                 ),
-                child: SingleChildScrollView(
+                child: Container(
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -239,7 +239,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 2),
                           AppButton(
                             text: 'Login With Google',
                             backgroundColor: AppColors.white,
@@ -250,26 +250,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
 
-                        const SizedBox(height: 22),
-
-                        const Text(
-                          'Gunakan akun yang sudah terdaftar di sistem SELECT.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
+                        // const Text(
+                        //   'Gunakan akun yang sudah terdaftar di sistem SELECT.',
+                        //   textAlign: TextAlign.center,
+                        //   style: TextStyle(
+                        //     color: AppColors.textSecondary,
+                        //     fontSize: 12,
+                        //     height: 1.4,
+                        //   ),
+                        // ),
+                        const SizedBox(height: 25),
                         Center(
-                          child: TextButton(
-                            onPressed: () {
-                              context.push('/register');
-                            },
-                            child: const Text(
-                              'Belum punya akun? Daftar',
-                              style: TextStyle(fontWeight: FontWeight.w900),
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                              ),
+                              children: [
+                                const TextSpan(
+                                  text: 'Belum punya akun? ',
+                                  style: TextStyle(color: AppColors.black),
+                                ),
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.middle,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      context.push('/register');
+                                    },
+                                    child: const Text(
+                                      'Daftar',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
