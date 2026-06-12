@@ -247,46 +247,46 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           },
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              break;
-            case 1:
-              context.push('/customer/bookings');
-              break;
-            case 2:
-              _showComingSoon('Favorit');
-              break;
-            case 3:
-              context.push('/customer/profile');
-              break;
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Beranda',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long_rounded),
-            label: 'Pesanan',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.favorite_border_rounded),
-            selectedIcon: Icon(Icons.favorite_rounded),
-            label: 'Favorit',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded),
-            label: 'Profil',
-          ),
-        ],
-      ),
+      // bottomNavigationBar: NavigationBar(
+      //   selectedIndex: 0,
+      //   onDestinationSelected: (index) {
+      //     switch (index) {
+      //       case 0:
+      //         break;
+      //       case 1:
+      //         context.push('/customer/bookings');
+      //         break;
+      //       case 2:
+      //         _showComingSoon('Favorit');
+      //         break;
+      //       case 3:
+      //         context.push('/customer/profile');
+      //         break;
+      //     }
+      //   },
+      //   destinations: const [
+      //     NavigationDestination(
+      //       icon: Icon(Icons.home_outlined),
+      //       selectedIcon: Icon(Icons.home_rounded),
+      //       label: 'Beranda',
+      //     ),
+      //     NavigationDestination(
+      //       icon: Icon(Icons.receipt_long_outlined),
+      //       selectedIcon: Icon(Icons.receipt_long_rounded),
+      //       label: 'Pesanan',
+      //     ),
+      //     NavigationDestination(
+      //       icon: Icon(Icons.favorite_border_rounded),
+      //       selectedIcon: Icon(Icons.favorite_rounded),
+      //       label: 'Favorit',
+      //     ),
+      //     NavigationDestination(
+      //       icon: Icon(Icons.person_outline_rounded),
+      //       selectedIcon: Icon(Icons.person_rounded),
+      //       label: 'Profil',
+      //     ),
+      //   ],
+      // ),
     );
   }
 }

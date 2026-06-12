@@ -4,25 +4,22 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 
 class CustomerShellScreen extends StatelessWidget {
+  final String location;
   final Widget child;
 
-  const CustomerShellScreen({super.key, required this.child});
+  const CustomerShellScreen({
+    super.key,
+    required this.location,
+    required this.child,
+  });
 
-  int _selectedIndex(String location) {
+  int get _selectedIndex {
     if (location.startsWith('/customer/bookings')) {
       return 1;
     }
 
-    if (location.startsWith('/customer/favorites')) {
-      return 2;
-    }
-
-    if (location.startsWith('/customer/notifications')) {
-      return 3;
-    }
-
     if (location.startsWith('/customer/profile')) {
-      return 4;
+      return 2;
     }
 
     return 0;
@@ -37,12 +34,6 @@ class CustomerShellScreen extends StatelessWidget {
         context.go('/customer/bookings');
         break;
       case 2:
-        context.go('/customer/favorites');
-        break;
-      case 3:
-        context.go('/customer/notifications');
-        break;
-      case 4:
         context.go('/customer/profile');
         break;
     }
@@ -50,9 +41,6 @@ class CustomerShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.path;
-    final selectedIndex = _selectedIndex(location);
-
     return Scaffold(
       body: child,
       bottomNavigationBar: SafeArea(
@@ -96,7 +84,7 @@ class CustomerShellScreen extends StatelessWidget {
               }),
             ),
             child: NavigationBar(
-              selectedIndex: selectedIndex,
+              selectedIndex: _selectedIndex,
               height: 72,
               elevation: 0,
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -115,19 +103,9 @@ class CustomerShellScreen extends StatelessWidget {
                   label: 'Pesanan',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.favorite_border_rounded),
-                  selectedIcon: Icon(Icons.favorite_rounded),
-                  label: 'Favorit',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.notifications_none_rounded),
-                  selectedIcon: Icon(Icons.notifications_rounded),
-                  label: 'Notif',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.person_outline_rounded),
+                  icon: Icon(Icons.person_outline),
                   selectedIcon: Icon(Icons.person_rounded),
-                  label: 'Profil',
+                  label: 'Profile',
                 ),
               ],
             ),

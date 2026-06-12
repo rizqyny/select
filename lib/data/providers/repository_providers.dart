@@ -17,6 +17,7 @@ import '../repositories/review_repository.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../repositories/favorite_repository.dart';
+import '../repositories/register_repository.dart';
 
 final itemRepositoryProvider = Provider<ItemRepository>((ref) {
   return ItemRepository(dio: ref.watch(dioProvider));
@@ -82,6 +83,9 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
   return ProfileRepository(dio: ref.watch(dioProvider));
 });
 
-final favoriteRepositoryProvider = Provider<FavoriteRepository>((ref) {
+final FavoriteRepositoryProvider = Provider<FavoriteRepository>((ref) {
   return FavoriteRepository(dio: ref.watch(dioProvider));
+});
+final registerRepositoryProvider = Provider<RegisterRepository>((ref) {
+  return RegisterRepository(dio: ref.watch(dioProvider));
 });
