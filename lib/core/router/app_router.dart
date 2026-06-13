@@ -19,6 +19,7 @@ import '../../features/admin/verifications/presentation/admin_condition_verifica
 import '../../features/admin/verifications/presentation/admin_condition_verifications_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verification_detail_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verifications_screen.dart';
+import '../../features/admin/profile/presentation/admin_profile_screen.dart';
 
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
@@ -198,20 +199,14 @@ final appRouter = GoRouter(
           builder: (context, state) => const AdminBookingsScreen(),
         ),
         GoRoute(
-          path: '/admin/verifications/identity',
-          name: 'admin-identity-verifications',
-          builder: (context, state) => const AdminIdentityVerificationsScreen(),
-        ),
-        GoRoute(
-          path: '/admin/verifications/condition',
-          name: 'admin-condition-verifications',
-          builder: (context, state) =>
-              const AdminConditionVerificationsScreen(),
-        ),
-        GoRoute(
           path: '/admin/items',
           name: 'admin-items',
           builder: (context, state) => const AdminItemsScreen(),
+        ),
+        GoRoute(
+          path: '/admin/profile',
+          name: 'admin-profile',
+          builder: (context, state) => const AdminProfileScreen(),
         ),
       ],
     ),
