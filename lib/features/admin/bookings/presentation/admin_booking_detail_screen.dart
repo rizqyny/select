@@ -6,6 +6,8 @@ import '../../../../../core/utils/currency_formatter.dart';
 import '../../../../../core/widgets/app_button.dart';
 import '../../../../../data/models/admin_booking_model.dart';
 import '../../bookings/providers/admin_bookings_provider.dart';
+import '../../../../../data/models/admin_identity_verification_model.dart';
+import '../../verifications/providers/admin_identity_verifications_provider.dart';
 
 class AdminBookingDetailScreen extends ConsumerWidget {
   final AdminBookingModel booking;
@@ -114,6 +116,10 @@ class AdminBookingDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(adminBookingsControllerProvider).value;
     final isUpdating = state?.updatingId == booking.id;
+    final identityVerificationState = ref.watch(
+      adminIdentityVerificationByBookingProvider(booking.id),
+    );
+    final identityVerification = identityVerificationState.asData?.value;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -131,7 +137,10 @@ class AdminBookingDetailScreen extends ConsumerWidget {
         children: [
           _BookingSummaryCard(booking: booking),
           const SizedBox(height: 16),
-          _IdentityVerificationCard(booking: booking),
+          _IdentityVerificationCard(
+            booking: booking,
+            verificationState: identityVerificationState,
+          ),
           const SizedBox(height: 16),
           _ConditionVerificationCard(booking: booking),
           if (state?.errorMessage != null) ...[
@@ -488,54 +497,168 @@ class _BookingItemsList extends StatelessWidget {
 
 class _IdentityVerificationCard extends StatelessWidget {
   final AdminBookingModel booking;
+  final AsyncValue<AdminIdentityVerificationModel?> verificationState;
 
-  const _IdentityVerificationCard({required this.booking});
+  const _IdentityVerificationCard({
+    required this.booking,
+    required this.verificationState,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final status = _identityStatus(booking.status);
-
-    return _VerificationCard(
-      title: 'Verifikasi KTP',
-      status: status,
-      icon: Icons.badge_rounded,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _FakeKtpPreview(status: status),
-          const SizedBox(height: 12),
-          _VerificationInfoBox(
-            icon: Icons.location_on_outlined,
-            title: 'Lokasi Verifikasi',
-            subtitle: _identityLocationText(status),
+    return verificationState.when(
+      loading: () {
+        return _VerificationCard(
+          title: 'Verifikasi KTP',
+          status: _VerificationViewStatus.pending,
+          icon: Icons.badge_rounded,
+          child: const SizedBox(
+            height: 120,
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           ),
-        ],
-      ),
+        );
+      },
+      error: (error, stackTrace) {
+        return _VerificationCard(
+          title: 'Verifikasi KTP',
+          status: _VerificationViewStatus.rejected,
+          icon: Icons.badge_rounded,
+          child: _VerificationInfoBox(
+            icon: Icons.error_outline_rounded,
+            title: 'Gagal Memuat Data KTP',
+            subtitle: error.toString().replaceFirst('Exception: ', ''),
+          ),
+        );
+      },
+      data: (verification) {
+        if (verification == null) {
+          return _VerificationCard(
+            title: 'Verifikasi KTP',
+            status: _VerificationViewStatus.pending,
+            icon: Icons.badge_rounded,
+            child: const _VerificationInfoBox(
+              icon: Icons.hourglass_top_rounded,
+              title: 'Menunggu Verifikasi KTP',
+              subtitle:
+                  'Customer belum mengirim data KTP atau data belum terbaca pada sistem admin.',
+            ),
+          );
+        }
+
+        final status = _identityStatus(verification);
+
+        return _VerificationCard(
+          title: 'Verifikasi KTP',
+          status: status,
+          icon: Icons.badge_rounded,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _IdentityPhotoPreview(photoPath: verification.photoPath),
+              const SizedBox(height: 12),
+              _VerificationInfoBox(
+                icon: Icons.person_rounded,
+                title: 'Data KTP',
+                subtitle:
+                    'Nama KTP: ${_emptyDash(verification.ktpName)}\nNomor KTP: ${_emptyDash(verification.ktpNumberMasked)}\nStatus: ${verification.status}',
+              ),
+              const SizedBox(height: 12),
+              _VerificationInfoBox(
+                icon: Icons.location_on_outlined,
+                title: 'Lokasi Verifikasi',
+                subtitle:
+                    '${_emptyDash(verification.addressText)}\nLat: ${verification.latitude}\nLong: ${verification.longitude}',
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  _VerificationViewStatus _identityStatus(String bookingStatus) {
-    switch (bookingStatus) {
-      case 'pending_verification':
-        return _VerificationViewStatus.pending;
-      case 'rejected':
-      case 'cancelled':
-      case 'expired':
-        return _VerificationViewStatus.rejected;
-      default:
-        return _VerificationViewStatus.approved;
+  _VerificationViewStatus _identityStatus(
+    AdminIdentityVerificationModel verification,
+  ) {
+    if (verification.isApproved) {
+      return _VerificationViewStatus.approved;
     }
+
+    if (verification.isRejected) {
+      return _VerificationViewStatus.rejected;
+    }
+
+    return _VerificationViewStatus.pending;
   }
 
-  String _identityLocationText(_VerificationViewStatus status) {
-    switch (status) {
-      case _VerificationViewStatus.pending:
-        return 'Menunggu customer mengirim data KTP dan GPS.';
-      case _VerificationViewStatus.approved:
-        return 'Data KTP sudah diproses. Detail foto/GPS asli akan ditampilkan setelah data verifikasi disambungkan.';
-      case _VerificationViewStatus.rejected:
-        return 'Pesanan tidak dapat dilanjutkan karena status tidak aktif.';
-    }
+  static String _emptyDash(String value) {
+    return value.trim().isEmpty ? '-' : value;
+  }
+}
+
+class _IdentityPhotoPreview extends ConsumerWidget {
+  final String photoPath;
+
+  const _IdentityPhotoPreview({required this.photoPath});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final imageState = ref.watch(adminIdentityDocumentUrlProvider(photoPath));
+
+    return Container(
+      width: double.infinity,
+      height: 190,
+      decoration: BoxDecoration(
+        color: AppColors.input,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: imageState.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (error, stackTrace) => const Center(
+          child: Text(
+            'Gagal memuat foto KTP',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        data: (url) {
+          if (url.trim().isEmpty) {
+            return const Center(
+              child: Text(
+                'Foto KTP tidak tersedia',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            );
+          }
+
+          return Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                child: Text(
+                  'Gagal menampilkan foto KTP',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -673,96 +796,6 @@ class _VerificationCard extends StatelessWidget {
       case _VerificationViewStatus.rejected:
         return AppColors.danger;
     }
-  }
-}
-
-class _FakeKtpPreview extends StatelessWidget {
-  final _VerificationViewStatus status;
-
-  const _FakeKtpPreview({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final isApproved = status == _VerificationViewStatus.approved;
-
-    return Container(
-      width: double.infinity,
-      height: 148,
-      decoration: BoxDecoration(
-        color: isApproved ? const Color(0xFFE9F3F6) : AppColors.input,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: isApproved
-          ? Stack(
-              children: [
-                Container(
-                  height: 42,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF3C6A7A),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(14),
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  top: 12,
-                  left: 16,
-                  child: Text(
-                    'KARTU IDENTITAS',
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 16,
-                  top: 58,
-                  child: Container(
-                    width: 64,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.person_rounded,
-                      color: AppColors.textSecondary,
-                      size: 38,
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  left: 96,
-                  top: 62,
-                  right: 16,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _KtpLine(width: 150),
-                      SizedBox(height: 8),
-                      _KtpLine(width: 120),
-                      SizedBox(height: 8),
-                      _KtpLine(width: 170),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          : const Center(
-              child: Text(
-                'Data foto KTP belum tersedia pada detail booking.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-    );
   }
 }
 
