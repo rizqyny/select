@@ -160,3 +160,24 @@ final adminIdentityDocumentUrlProvider = FutureProvider.family<String, String>((
     path: photoPath,
   );
 });
+
+final adminIdentityVerificationByBookingProvider =
+    FutureProvider.family<AdminIdentityVerificationModel?, int>((
+      ref,
+      bookingId,
+    ) async {
+      final repository = ref.read(adminVerificationRepositoryProvider);
+
+      final verifications = await repository.fetchIdentityVerifications(
+        page: 1,
+        limit: 100,
+      );
+
+      for (final verification in verifications) {
+        if (verification.bookingId == bookingId) {
+          return verification;
+        }
+      }
+
+      return null;
+    });

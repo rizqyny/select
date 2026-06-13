@@ -109,6 +109,26 @@ class BookingDetailScreen extends ConsumerWidget {
     return booking.items.first.itemId;
   }
 
+  Future<void> _openIdentityVerification(
+    BuildContext context,
+    WidgetRef ref,
+    BookingModel booking,
+  ) async {
+    final result = await context.push<bool>(
+      '/customer/verifications/identity/${booking.id}',
+    );
+
+    if (result == true && context.mounted) {
+      await ref
+          .read(bookingDetailControllerProvider(booking.id).notifier)
+          .markIdentityVerificationSubmitted();
+
+      await ref
+          .read(bookingDetailControllerProvider(booking.id).notifier)
+          .refresh();
+    }
+  }
+
   Future<void> _openConditionVerification(
     BuildContext context,
     WidgetRef ref,
@@ -207,6 +227,26 @@ class BookingDetailScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     )
+                  : booking.needsIdentityVerification
+                  ? state.hasSubmittedIdentityVerification
+                        ? const Text(
+                            'Verifikasi KTP sudah dikirim. Menunggu persetujuan admin.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w900,
+                              height: 1.4,
+                            ),
+                          )
+                        : AppButton(
+                            text: 'Verifikasi KTP',
+                            icon: Icons.badge_rounded,
+                            backgroundColor: AppColors.black,
+                            foregroundColor: AppColors.white,
+                            onPressed: () {
+                              _openIdentityVerification(context, ref, booking);
+                            },
+                          )
                   : _needsBeforeConditionVerification(booking)
                   ? state.hasSubmittedBeforeConditionVerification
                         ? const Text(

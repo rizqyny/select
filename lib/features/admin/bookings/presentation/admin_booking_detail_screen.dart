@@ -10,17 +10,15 @@ import '../../bookings/providers/admin_bookings_provider.dart';
 class AdminBookingDetailScreen extends ConsumerWidget {
   final AdminBookingModel booking;
 
-  const AdminBookingDetailScreen({
-    super.key,
-    required this.booking,
-  });
+  const AdminBookingDetailScreen({super.key, required this.booking});
 
   Future<void> _approve(BuildContext context, WidgetRef ref) async {
     final confirmed = await _showConfirmDialog(
       context: context,
-      title: 'Approve Booking?',
-      message: 'Booking akan disetujui dan siap diproses peminjamannya.',
-      confirmText: 'Approve',
+      title: 'Setujui Pesanan?',
+      message:
+          'Pesanan akan disetujui dan customer dapat melanjutkan proses penyewaan.',
+      confirmText: 'Setujui',
     );
 
     if (confirmed != true) return;
@@ -33,7 +31,7 @@ class AdminBookingDetailScreen extends ConsumerWidget {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking berhasil disetujui.')),
+        const SnackBar(content: Text('Pesanan berhasil disetujui.')),
       );
 
       Navigator.pop(context, true);
@@ -43,20 +41,17 @@ class AdminBookingDetailScreen extends ConsumerWidget {
   Future<void> _reject(BuildContext context, WidgetRef ref) async {
     final reason = await _showRejectDialog(context);
 
-    if (reason == null) return;
+    if (reason == null || reason.trim().isEmpty) return;
 
     final success = await ref
         .read(adminBookingsControllerProvider.notifier)
-        .reject(
-          id: booking.id,
-          reason: reason,
-        );
+        .reject(id: booking.id, reason: reason);
 
     if (!context.mounted) return;
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking berhasil ditolak.')),
+        const SnackBar(content: Text('Pesanan berhasil ditolak.')),
       );
 
       Navigator.pop(context, true);
@@ -67,8 +62,9 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     final confirmed = await _showConfirmDialog(
       context: context,
       title: 'Mulai Sewa?',
-      message: 'Status booking akan diubah menjadi sedang berlangsung.',
-      confirmText: 'Mulai',
+      message:
+          'Pastikan verifikasi kondisi awal barang sudah sesuai. Setelah dilanjutkan, status sewa akan menjadi berlangsung.',
+      confirmText: 'Mulai Sewa',
     );
 
     if (confirmed != true) return;
@@ -80,9 +76,9 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking berhasil dimulai.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sewa berhasil dimulai.')));
 
       Navigator.pop(context, true);
     }
@@ -91,8 +87,9 @@ class AdminBookingDetailScreen extends ConsumerWidget {
   Future<void> _complete(BuildContext context, WidgetRef ref) async {
     final confirmed = await _showConfirmDialog(
       context: context,
-      title: 'Selesaikan Booking?',
-      message: 'Pastikan barang sudah dikembalikan dengan baik.',
+      title: 'Selesaikan Sewa?',
+      message:
+          'Pastikan barang sudah dikembalikan dengan baik sebelum menyelesaikan pesanan.',
       confirmText: 'Selesaikan',
     );
 
@@ -106,7 +103,7 @@ class AdminBookingDetailScreen extends ConsumerWidget {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking berhasil diselesaikan.')),
+        const SnackBar(content: Text('Sewa berhasil diselesaikan.')),
       );
 
       Navigator.pop(context, true);
@@ -119,31 +116,44 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     final isUpdating = state?.updatingId == booking.id;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Detail Booking'),
+        title: const Text('Detail Sewa'),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.more_vert_rounded),
+          ),
+        ],
       ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(22, 18, 22, 130),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 132),
         children: [
-          _BookingInfoCard(booking: booking),
-          const SizedBox(height: 18),
-          _CustomerInfoCard(booking: booking),
-          const SizedBox(height: 18),
-          _ItemsSection(booking: booking),
+          _BookingSummaryCard(booking: booking),
+          const SizedBox(height: 16),
+          _IdentityVerificationCard(booking: booking),
+          const SizedBox(height: 16),
+          _ConditionVerificationCard(booking: booking),
           if (state?.errorMessage != null) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             _MessageBox(message: state!.errorMessage!),
           ],
         ],
       ),
       bottomNavigationBar: SafeArea(
+        top: false,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
-          decoration: const BoxDecoration(
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+          decoration: BoxDecoration(
             color: AppColors.white,
-            border: Border(
-              top: BorderSide(color: AppColors.border),
-            ),
+            border: const Border(top: BorderSide(color: AppColors.border)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.black.withOpacity(0.08),
+                blurRadius: 18,
+                offset: const Offset(0, -6),
+              ),
+            ],
           ),
           child: _ActionButtons(
             booking: booking,
@@ -168,12 +178,32 @@ class AdminBookingDetailScreen extends ConsumerWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(title),
-          content: Text(message),
+          backgroundColor: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal'),
+              child: const Text(
+                'Batal',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
@@ -192,18 +222,31 @@ class AdminBookingDetailScreen extends ConsumerWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Tolak Booking'),
+          backgroundColor: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Text(
+            'Tolak Pesanan',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           content: TextField(
             controller: controller,
-            maxLines: 3,
+            maxLines: 4,
             decoration: const InputDecoration(
-              hintText: 'Alasan penolakan',
+              hintText: 'Tulis alasan penolakan',
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
+              child: const Text(
+                'Batal',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
             FilledButton(
               onPressed: () {
@@ -218,37 +261,124 @@ class AdminBookingDetailScreen extends ConsumerWidget {
   }
 }
 
-class _BookingInfoCard extends StatelessWidget {
+class _BookingSummaryCard extends StatelessWidget {
   final AdminBookingModel booking;
 
-  const _BookingInfoCard({
-    required this.booking,
-  });
+  const _BookingSummaryCard({required this.booking});
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Informasi Booking',
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         children: [
-          _InfoRow(label: 'Kode', value: booking.code),
-          _InfoRow(label: 'Status', value: booking.status),
-          _InfoRow(
-            label: 'Tanggal',
-            value: _dateRangeText(
-              booking.rentalStartDate,
-              booking.rentalEndDate,
-            ),
+          Row(
+            children: [
+              _CustomerAvatar(name: booking.customerName),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      booking.customerName.trim().isEmpty
+                          ? 'Customer'
+                          : booking.customerName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '#${booking.code}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _StatusBadge(status: booking.status),
+            ],
           ),
-          _InfoRow(
-            label: 'Total',
-            value: CurrencyFormatter.rupiah(booking.totalAmount),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.border),
+          const SizedBox(height: 14),
+          Row(
+            children: const [
+              Icon(
+                Icons.inventory_2_outlined,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'ITEM DISEWA',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
-          if (booking.paymentStatus != null)
-            _InfoRow(label: 'Payment', value: booking.paymentStatus!),
-          if (booking.customerNote != null &&
-              booking.customerNote!.trim().isNotEmpty)
-            _InfoRow(label: 'Catatan', value: booking.customerNote!),
+          const SizedBox(height: 12),
+          _BookingItemsList(booking: booking),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.border),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryValue(
+                  label: 'Tanggal Sewa',
+                  value: _dateRangeText(
+                    booking.rentalStartDate,
+                    booking.rentalEndDate,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SummaryValue(
+                  label: 'Total Harga',
+                  value: CurrencyFormatter.rupiah(booking.totalAmount),
+                  alignRight: true,
+                ),
+              ),
+            ],
+          ),
+          if (booking.paymentStatus != null ||
+              (booking.customerNote != null &&
+                  booking.customerNote!.trim().isNotEmpty)) ...[
+            const SizedBox(height: 14),
+            const Divider(color: AppColors.border),
+            const SizedBox(height: 12),
+            if (booking.paymentStatus != null)
+              _SmallInfoLine(
+                icon: Icons.payments_rounded,
+                label: 'Pembayaran',
+                value: booking.paymentStatus!,
+              ),
+            if (booking.customerNote != null &&
+                booking.customerNote!.trim().isNotEmpty)
+              _SmallInfoLine(
+                icon: Icons.notes_rounded,
+                label: 'Catatan',
+                value: booking.customerNote!,
+              ),
+          ],
         ],
       ),
     );
@@ -257,95 +387,534 @@ class _BookingInfoCard extends StatelessWidget {
   String _dateRangeText(DateTime? start, DateTime? end) {
     if (start == null || end == null) return '-';
 
-    return '${start.day}/${start.month}/${start.year} - ${end.day}/${end.month}/${end.year}';
+    return '${start.day} ${_monthName(start.month)} - ${end.day} ${_monthName(end.month)} ${end.year}';
+  }
+
+  String _monthName(int month) {
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+
+    if (month < 1 || month > 12) return '';
+
+    return months[month];
   }
 }
 
-class _CustomerInfoCard extends StatelessWidget {
+class _BookingItemsList extends StatelessWidget {
   final AdminBookingModel booking;
 
-  const _CustomerInfoCard({
-    required this.booking,
+  const _BookingItemsList({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    if (booking.items.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.input,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Text(
+          'Data barang belum tersedia.',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: booking.items.map((item) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.input,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.camera_alt_rounded,
+                  size: 20,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item.itemName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '1x',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _IdentityVerificationCard extends StatelessWidget {
+  final AdminBookingModel booking;
+
+  const _IdentityVerificationCard({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _identityStatus(booking.status);
+
+    return _VerificationCard(
+      title: 'Verifikasi KTP',
+      status: status,
+      icon: Icons.badge_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _FakeKtpPreview(status: status),
+          const SizedBox(height: 12),
+          _VerificationInfoBox(
+            icon: Icons.location_on_outlined,
+            title: 'Lokasi Verifikasi',
+            subtitle: _identityLocationText(status),
+          ),
+        ],
+      ),
+    );
+  }
+
+  _VerificationViewStatus _identityStatus(String bookingStatus) {
+    switch (bookingStatus) {
+      case 'pending_verification':
+        return _VerificationViewStatus.pending;
+      case 'rejected':
+      case 'cancelled':
+      case 'expired':
+        return _VerificationViewStatus.rejected;
+      default:
+        return _VerificationViewStatus.approved;
+    }
+  }
+
+  String _identityLocationText(_VerificationViewStatus status) {
+    switch (status) {
+      case _VerificationViewStatus.pending:
+        return 'Menunggu customer mengirim data KTP dan GPS.';
+      case _VerificationViewStatus.approved:
+        return 'Data KTP sudah diproses. Detail foto/GPS asli akan ditampilkan setelah data verifikasi disambungkan.';
+      case _VerificationViewStatus.rejected:
+        return 'Pesanan tidak dapat dilanjutkan karena status tidak aktif.';
+    }
+  }
+}
+
+class _ConditionVerificationCard extends StatelessWidget {
+  final AdminBookingModel booking;
+
+  const _ConditionVerificationCard({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _conditionStatus(booking);
+
+    return _VerificationCard(
+      title: 'Verifikasi Kondisi Barang',
+      status: status,
+      icon: Icons.verified_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _ConditionPreview(status: status),
+          const SizedBox(height: 12),
+          _VerificationInfoBox(
+            icon: Icons.info_outline_rounded,
+            title: 'Status Kondisi Awal',
+            subtitle: _conditionMessage(booking.status),
+          ),
+        ],
+      ),
+    );
+  }
+
+  _VerificationViewStatus _conditionStatus(AdminBookingModel booking) {
+    if (booking.status == 'rejected' ||
+        booking.status == 'cancelled' ||
+        booking.status == 'expired') {
+      return _VerificationViewStatus.rejected;
+    }
+
+    if (booking.status == 'ongoing' || booking.status == 'completed') {
+      return _VerificationViewStatus.approved;
+    }
+
+    if (booking.canStart) {
+      return _VerificationViewStatus.pending;
+    }
+
+    return _VerificationViewStatus.pending;
+  }
+
+  String _conditionMessage(String status) {
+    switch (status) {
+      case 'pending_verification':
+        return 'Verifikasi kondisi belum dapat diproses sebelum KTP disetujui.';
+      case 'waiting_payment':
+        return 'Menunggu customer melakukan pembayaran terlebih dahulu.';
+      case 'payment_pending':
+      case 'paid':
+      case 'approved':
+        return 'Menunggu atau memproses verifikasi kondisi awal barang. Jika data sudah sesuai, tekan Mulai Sewa.';
+      case 'ongoing':
+        return 'Kondisi awal sudah disetujui dan masa sewa sedang berlangsung.';
+      case 'completed':
+        return 'Sewa sudah selesai.';
+      case 'rejected':
+        return 'Pesanan sudah ditolak.';
+      case 'cancelled':
+        return 'Pesanan sudah dibatalkan.';
+      case 'expired':
+        return 'Pesanan sudah kedaluwarsa.';
+      default:
+        return 'Status kondisi mengikuti proses booking saat ini.';
+    }
+  }
+}
+
+enum _VerificationViewStatus { pending, approved, rejected }
+
+class _VerificationCard extends StatelessWidget {
+  final String title;
+  final _VerificationViewStatus status;
+  final IconData icon;
+  final Widget child;
+
+  const _VerificationCard({
+    required this.title,
+    required this.status,
+    required this.icon,
+    required this.child,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Data Customer',
+    final color = _statusColor(status);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _InfoRow(label: 'Nama', value: booking.customerName),
-          _InfoRow(label: 'Email', value: booking.customerEmail),
-          _InfoRow(label: 'Telepon', value: booking.customerPhone),
+          Row(
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              _VerificationStatusIcon(status: status),
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor(_VerificationViewStatus status) {
+    switch (status) {
+      case _VerificationViewStatus.pending:
+        return AppColors.warning;
+      case _VerificationViewStatus.approved:
+        return AppColors.success;
+      case _VerificationViewStatus.rejected:
+        return AppColors.danger;
+    }
+  }
+}
+
+class _FakeKtpPreview extends StatelessWidget {
+  final _VerificationViewStatus status;
+
+  const _FakeKtpPreview({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final isApproved = status == _VerificationViewStatus.approved;
+
+    return Container(
+      width: double.infinity,
+      height: 148,
+      decoration: BoxDecoration(
+        color: isApproved ? const Color(0xFFE9F3F6) : AppColors.input,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: isApproved
+          ? Stack(
+              children: [
+                Container(
+                  height: 42,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF3C6A7A),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(14),
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  top: 12,
+                  left: 16,
+                  child: Text(
+                    'KARTU IDENTITAS',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  top: 58,
+                  child: Container(
+                    width: 64,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: AppColors.textSecondary,
+                      size: 38,
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  left: 96,
+                  top: 62,
+                  right: 16,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _KtpLine(width: 150),
+                      SizedBox(height: 8),
+                      _KtpLine(width: 120),
+                      SizedBox(height: 8),
+                      _KtpLine(width: 170),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : const Center(
+              child: Text(
+                'Data foto KTP belum tersedia pada detail booking.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+class _KtpLine extends StatelessWidget {
+  final double width;
+
+  const _KtpLine({required this.width});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: 9,
+      decoration: BoxDecoration(
+        color: AppColors.white.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(99),
+      ),
+    );
+  }
+}
+
+class _ConditionPreview extends StatelessWidget {
+  final _VerificationViewStatus status;
+
+  const _ConditionPreview({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final isApproved = status == _VerificationViewStatus.approved;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isApproved
+            ? AppColors.success.withOpacity(0.08)
+            : AppColors.input,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isApproved
+              ? AppColors.success.withOpacity(0.25)
+              : AppColors.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isApproved
+                ? Icons.check_circle_rounded
+                : Icons.hourglass_top_rounded,
+            color: isApproved ? AppColors.success : AppColors.warning,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              isApproved
+                  ? 'Kondisi awal sudah disetujui.'
+                  : 'Menunggu verifikasi kondisi awal barang.',
+              style: TextStyle(
+                color: isApproved ? AppColors.success : AppColors.textSecondary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _ItemsSection extends StatelessWidget {
-  final AdminBookingModel booking;
+class _VerificationInfoBox extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
 
-  const _ItemsSection({
-    required this.booking,
+  const _VerificationInfoBox({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) {
-    final items = booking.items;
-
-    return _SectionCard(
-      title: 'Barang Disewa',
-      child: items.isEmpty
-          ? const Text(
-              'Data barang belum tersedia.',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            )
-          : Column(
-              children: items.map((item) {
-                final displayDailyPrice = item.dailyPrice > 0
-                    ? item.dailyPrice
-                    : booking.fallbackDailyPricePerItem;
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.input,
-                    borderRadius: BorderRadius.circular(18),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: AppColors.input,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w900,
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.devices_other_rounded,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          item.itemName,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        CurrencyFormatter.dailyPrice(displayDailyPrice),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
                   ),
-                );
-              }).toList(),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
     );
+  }
+}
+
+class _VerificationStatusIcon extends StatelessWidget {
+  final _VerificationViewStatus status;
+
+  const _VerificationStatusIcon({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (status) {
+      case _VerificationViewStatus.pending:
+        return const Icon(
+          Icons.hourglass_top_rounded,
+          color: AppColors.warning,
+          size: 22,
+        );
+      case _VerificationViewStatus.approved:
+        return const Icon(
+          Icons.verified_rounded,
+          color: AppColors.success,
+          size: 22,
+        );
+      case _VerificationViewStatus.rejected:
+        return const Icon(
+          Icons.cancel_rounded,
+          color: AppColors.danger,
+          size: 22,
+        );
+    }
   }
 }
 
@@ -381,32 +950,14 @@ class _ActionButtons extends StatelessWidget {
       return Row(
         children: [
           Expanded(
-            child: SizedBox(
-              height: 56,
-              child: OutlinedButton.icon(
-                onPressed: onReject,
-                icon: const Icon(Icons.close_rounded),
-                label: const Text(
-                  'Tolak',
-                  style: TextStyle(fontWeight: FontWeight.w900),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.danger,
-                  side: const BorderSide(color: AppColors.danger),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-              ),
-            ),
+            child: _RejectButton(text: 'Tolak Pesanan', onPressed: onReject),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: AppButton(
-              text: 'Approve',
-              icon: Icons.check_rounded,
-              backgroundColor: AppColors.black,
-              foregroundColor: AppColors.white,
+              text: 'Setujui',
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.black,
               onPressed: onApprove,
             ),
           ),
@@ -415,21 +966,31 @@ class _ActionButtons extends StatelessWidget {
     }
 
     if (booking.canStart) {
-      return AppButton(
-        text: 'Mulai Sewa',
-        icon: Icons.play_arrow_rounded,
-        backgroundColor: AppColors.black,
-        foregroundColor: AppColors.white,
-        onPressed: onStart,
+      return Row(
+        children: [
+          Expanded(
+            child: _RejectButton(text: 'Tolak Pesanan', onPressed: onReject),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: AppButton(
+              text: 'Mulai Sewa',
+              icon: Icons.play_arrow_rounded,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.black,
+              onPressed: onStart,
+            ),
+          ),
+        ],
       );
     }
 
     if (booking.canComplete) {
       return AppButton(
-        text: 'Selesaikan Booking',
+        text: 'Selesaikan Sewa',
         icon: Icons.task_alt_rounded,
-        backgroundColor: AppColors.black,
-        foregroundColor: AppColors.white,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.black,
         onPressed: onComplete,
       );
     }
@@ -447,67 +1008,214 @@ class _ActionButtons extends StatelessWidget {
   String _message(String status) {
     switch (status) {
       case 'pending_verification':
-        return 'Menunggu verifikasi KTP customer.';
+        return 'Menunggu customer mengirim atau melengkapi verifikasi KTP.';
       case 'waiting_payment':
         return 'Menunggu customer melakukan pembayaran.';
       case 'payment_pending':
         return 'Menunggu status pembayaran diperbarui.';
+      case 'paid':
+        return 'Pembayaran berhasil. Menunggu proses verifikasi kondisi.';
+      case 'approved':
+        return 'Pesanan disetujui. Menunggu verifikasi kondisi awal.';
+      case 'ongoing':
+        return 'Masa sewa sedang berlangsung.';
       case 'completed':
-        return 'Booking sudah selesai.';
+        return 'Sewa sudah selesai.';
       case 'rejected':
-        return 'Booking sudah ditolak.';
+        return 'Pesanan sudah ditolak.';
       case 'cancelled':
-        return 'Booking sudah dibatalkan.';
+        return 'Pesanan sudah dibatalkan.';
       case 'expired':
-        return 'Booking sudah kedaluwarsa.';
+        return 'Pesanan sudah kedaluwarsa.';
       default:
-        return 'Tidak ada aksi untuk status booking ini.';
+        return 'Tidak ada aksi untuk status sewa ini.';
     }
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
+class _RejectButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onPressed;
 
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
+  const _RejectButton({required this.text, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-            ),
+    return SizedBox(
+      height: 56,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          const SizedBox(height: 14),
-          child,
-        ],
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
+class _StatusBadge extends StatelessWidget {
+  final String status;
+
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _label(status);
+    final color = _color(status);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
+  String _label(String status) {
+    switch (status) {
+      case 'pending_verification':
+        return 'MENUNGGU';
+      case 'waiting_payment':
+        return 'MENUNGGU BAYAR';
+      case 'payment_pending':
+        return 'PROSES BAYAR';
+      case 'paid':
+        return 'TERBAYAR';
+      case 'approved':
+        return 'DISETUJUI';
+      case 'ongoing':
+        return 'BERLANGSUNG';
+      case 'completed':
+        return 'SELESAI';
+      case 'rejected':
+        return 'DITOLAK';
+      case 'cancelled':
+        return 'DIBATALKAN';
+      case 'expired':
+        return 'KEDALUWARSA';
+      default:
+        return status.toUpperCase();
+    }
+  }
+
+  Color _color(String status) {
+    switch (status) {
+      case 'pending_verification':
+      case 'waiting_payment':
+      case 'payment_pending':
+      case 'approved':
+        return AppColors.warning;
+      case 'paid':
+      case 'ongoing':
+      case 'completed':
+        return AppColors.success;
+      case 'rejected':
+      case 'cancelled':
+      case 'expired':
+        return AppColors.danger;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+}
+
+class _CustomerAvatar extends StatelessWidget {
+  final String name;
+
+  const _CustomerAvatar({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? 'C' : name.trim()[0].toUpperCase();
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppColors.black,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            color: AppColors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryValue extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool alignRight;
+
+  const _SummaryValue({
+    required this.label,
+    required this.value,
+    this.alignRight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: alignRight
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          textAlign: alignRight ? TextAlign.right : TextAlign.left,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          textAlign: alignRight ? TextAlign.right : TextAlign.left,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SmallInfoLine extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String value;
 
-  const _InfoRow({
+  const _SmallInfoLine({
+    required this.icon,
     required this.label,
     required this.value,
   });
@@ -517,12 +1225,14 @@ class _InfoRow extends StatelessWidget {
     final displayValue = value.trim().isEmpty ? '-' : value;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 11),
+      padding: const EdgeInsets.only(bottom: 9),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Icon(icon, color: AppColors.textSecondary, size: 18),
+          const SizedBox(width: 8),
           SizedBox(
-            width: 105,
+            width: 92,
             child: Text(
               label,
               style: const TextStyle(
@@ -549,9 +1259,7 @@ class _InfoRow extends StatelessWidget {
 class _MessageBox extends StatelessWidget {
   final String message;
 
-  const _MessageBox({
-    required this.message,
-  });
+  const _MessageBox({required this.message});
 
   @override
   Widget build(BuildContext context) {
