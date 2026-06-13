@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:select/features/customer/notifications/presentation/notifications_screen.dart';
-import 'package:select/features/customer/profile/presentation/profile_screen.dart';
+import 'package:Select/features/customer/notifications/presentation/notifications_screen.dart';
+import 'package:Select/features/customer/profile/presentation/profile_screen.dart';
 
 import '../../data/models/admin_booking_model.dart';
 import '../../data/models/admin_condition_verification_model.dart';

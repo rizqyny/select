@@ -1,4 +1,4 @@
-name: select
+name: Select
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -56,10 +56,18 @@ dependencies:
   firebase_core: ^3.10.0
   firebase_messaging: ^15.2.0
   flutter_svg: ^2.0.10+1
+  flutter_launcher_icons: "^0.13.1"
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/LOGO_SELECT.png" # Sesuaikan dengan lokasi file logo Anda
+  adaptive_icon_background: "#161314" # Warna background untuk ikon Android
+  adaptive_icon_foreground: "assets/images/LOGO_SELECT.png"    
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
