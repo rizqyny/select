@@ -94,7 +94,11 @@ class FavoritesController extends AsyncNotifier<FavoritesState> {
 
     try {
       if (alreadyFavorite) {
-        await _repository.removeFavorite(itemId);
+        await _favoriteRepository.removeFavorite(itemId);
+
+        ref.invalidate(myFavoritesControllerProvider);
+        ref.invalidate(customerHomeControllerProvider);
+        ref.invalidate(itemDetailControllerProvider(itemId));
 
         final updated = current.favorites
             .where((favorite) => favorite.itemId != itemId)

@@ -21,82 +21,100 @@ class CustomerHomeState {
   final String searchQuery;
   final bool isLoadingItems;
   final String? errorMessage;
+  final Set<int> favoriteItemIds;
 
   const CustomerHomeState({
     required this.categories,
     required this.items,
-    this.selectedCategoryId,
-    this.searchQuery = '',
-    this.isLoadingItems = false,
-    this.errorMessage,
+    required this.selectedCategoryId,
+    required this.searchQuery,
+    required this.isLoadingItems,
+    required this.errorMessage,
+    required this.favoriteItemIds,
   });
-
-  factory CustomerHomeState.initial() {
-    return const CustomerHomeState(categories: [], items: []);
-  }
 
   CustomerHomeState copyWith({
     List<CategoryModel>? categories,
     List<ItemModel>? items,
-    Object? selectedCategoryId = _unset,
+    int? selectedCategoryId,
     String? searchQuery,
     bool? isLoadingItems,
-    Object? errorMessage = _unset,
+    String? errorMessage,
+    Set<int>? favoriteItemIds,
   }) {
     return CustomerHomeState(
       categories: categories ?? this.categories,
       items: items ?? this.items,
-      selectedCategoryId: identical(selectedCategoryId, _unset)
-          ? this.selectedCategoryId
-          : selectedCategoryId as int?,
+      selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
       searchQuery: searchQuery ?? this.searchQuery,
       isLoadingItems: isLoadingItems ?? this.isLoadingItems,
-      errorMessage: identical(errorMessage, _unset)
-          ? this.errorMessage
-          : errorMessage as String?,
+      errorMessage: errorMessage,
+      favoriteItemIds: favoriteItemIds ?? this.favoriteItemIds,
     );
   }
 }
 
+final customerHomeControllerProvider =
+    AsyncNotifierProvider<CustomerHomeController, CustomerHomeState>(
+      CustomerHomeController.new,
+    );
+
 class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
-  ItemRepository get _repository => ref.read(itemRepositoryProvider);
+  ItemRepository get _itemRepository => ref.read(itemRepositoryProvider);
+  CategoryRepository get _categoryRepository =>
+      ref.read(categoryRepositoryProvider);
+  FavoriteRepository get _favoriteRepository =>
+      ref.read(favoriteRepositoryProvider);
 
   @override
-  FutureOr<CustomerHomeState> build() async {
-    final categories = await _repository.fetchCategories();
-    final items = await _repository.fetchItems();
+  Future<CustomerHomeState> build() async {
+    final categories = await _categoryRepository.fetchCategories();
+    final items = await _itemRepository.fetchItems();
+    final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
 
-    return CustomerHomeState(categories: categories, items: items);
+    return CustomerHomeState(
+      categories: categories,
+      items: items,
+      selectedCategoryId: null,
+      searchQuery: '',
+      isLoadingItems: false,
+      errorMessage: null,
+      favoriteItemIds: favoriteIds.toSet(),
+    );
   }
 
   Future<void> refresh() async {
-    final current = state.value ?? CustomerHomeState.initial();
+    final current = state.value;
 
     state = const AsyncLoading();
 
     try {
-      final categories = await _repository.fetchCategories();
-
-      final items = await _repository.fetchItems(
-        search: current.searchQuery,
-        categoryId: current.selectedCategoryId,
+      final categories = await _categoryRepository.fetchCategories();
+      final items = await _itemRepository.fetchItems(
+        search: current?.searchQuery,
+        categoryId: current?.selectedCategoryId,
       );
+      final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
 
       state = AsyncData(
         CustomerHomeState(
           categories: categories,
           items: items,
-          selectedCategoryId: current.selectedCategoryId,
-          searchQuery: current.searchQuery,
+          selectedCategoryId: current?.selectedCategoryId,
+          searchQuery: current?.searchQuery ?? '',
+          isLoadingItems: false,
+          errorMessage: null,
+          favoriteItemIds: favoriteIds.toSet(),
         ),
       );
-    } catch (error, stackTrace) {
-      state = AsyncError(error, stackTrace);
+    } catch (e, st) {
+      state = AsyncError(e, st);
     }
   }
 
   Future<void> setCategory(int? categoryId) async {
-    final current = state.value ?? CustomerHomeState.initial();
+    final current = state.value;
+    if (current == null) return;
 
     state = AsyncData(
       current.copyWith(
@@ -107,68 +125,93 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
     );
 
     try {
-      final items = await _repository.fetchItems(
+      final items = await _itemRepository.fetchItems(
         search: current.searchQuery,
         categoryId: categoryId,
       );
 
-      final latest = state.value ?? current;
-
       state = AsyncData(
-        latest.copyWith(
-          items: items,
+        current.copyWith(
           selectedCategoryId: categoryId,
+          items: items,
           isLoadingItems: false,
-          errorMessage: null,
         ),
       );
-    } catch (error) {
-      final latest = state.value ?? current;
-
+    } catch (e) {
       state = AsyncData(
-        latest.copyWith(
+        current.copyWith(
           isLoadingItems: false,
-          errorMessage: error.toString().replaceFirst('Exception: ', ''),
+          errorMessage: e.toString().replaceFirst('Exception: ', ''),
         ),
       );
     }
   }
 
   Future<void> setSearch(String query) async {
-    final current = state.value ?? CustomerHomeState.initial();
-    final cleanQuery = query.trim();
+    final current = state.value;
+    if (current == null) return;
 
     state = AsyncData(
       current.copyWith(
-        searchQuery: cleanQuery,
+        searchQuery: query,
         isLoadingItems: true,
         errorMessage: null,
       ),
     );
 
     try {
-      final items = await _repository.fetchItems(
-        search: cleanQuery,
+      final items = await _itemRepository.fetchItems(
+        search: query,
         categoryId: current.selectedCategoryId,
       );
 
-      final latest = state.value ?? current;
-
       state = AsyncData(
-        latest.copyWith(
+        current.copyWith(
+          searchQuery: query,
           items: items,
-          searchQuery: cleanQuery,
           isLoadingItems: false,
-          errorMessage: null,
         ),
       );
-    } catch (error) {
-      final latest = state.value ?? current;
-
+    } catch (e) {
       state = AsyncData(
-        latest.copyWith(
+        current.copyWith(
           isLoadingItems: false,
-          errorMessage: error.toString().replaceFirst('Exception: ', ''),
+          errorMessage: e.toString().replaceFirst('Exception: ', ''),
+        ),
+      );
+    }
+  }
+
+  Future<void> toggleFavorite(ItemModel item) async {
+    final current = state.value;
+    if (current == null) return;
+
+    final currentFavorites = <int>{...current.favoriteItemIds};
+    final isFavorite = currentFavorites.contains(item.id);
+
+    if (isFavorite) {
+      currentFavorites.remove(item.id);
+    } else {
+      currentFavorites.add(item.id);
+    }
+
+    state = AsyncData(
+      current.copyWith(favoriteItemIds: currentFavorites, errorMessage: null),
+    );
+
+    try {
+      if (isFavorite) {
+        await _favoriteRepository.removeFavorite(item.id);
+      } else {
+        await _favoriteRepository.addFavorite(item.id);
+      }
+
+      ref.invalidate(myFavoritesControllerProvider);
+      ref.invalidate(itemDetailControllerProvider(item.id));
+    } catch (e) {
+      state = AsyncData(
+        current.copyWith(
+          errorMessage: e.toString().replaceFirst('Exception: ', ''),
         ),
       );
     }
