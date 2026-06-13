@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:select/features/customer/notifications/presentation/notifications_screen.dart';
 import 'package:select/features/customer/profile/presentation/profile_screen.dart';
 
 import '../../data/models/admin_booking_model.dart';
@@ -55,6 +56,12 @@ final appRouter = GoRouter(
       path: '/register',
       name: 'register',
       builder: (context, state) => const RegisterScreen(),
+    ),
+
+    GoRoute(
+      path: '/customer/notifications',
+      name: 'customer-notifications',
+      builder: (context, state) => const NotificationsScreen(),
     ),
 
     // =========================
