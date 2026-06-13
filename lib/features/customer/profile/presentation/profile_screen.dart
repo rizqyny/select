@@ -1,57 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/error_message.dart';
 import '../../../../core/widgets/app_button.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../booking/providers/customer_bookings_provider.dart';
+import '../../favorites/providers/favorites_provider.dart';
 import '../providers/profile_provider.dart';
 
-class ProfileScreen extends ConsumerStatefulWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  @override
-  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-
-  bool _hasFilledInitialValue = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final success = await ref.read(profileControllerProvider.notifier).updateProfile(
-          fullName: _nameController.text,
-          phone: _phoneController.text,
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Text(
+            'Keluar dari akun?',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: const Text(
+            'Kamu perlu login kembali untuk menggunakan aplikasi SELECT.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text(
+                'Batal',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Keluar'),
+            ),
+          ],
         );
+      },
+    );
 
-    if (!mounted) return;
+    if (confirmed != true) return;
 
-    if (success) {
-      FocusScope.of(context).unfocus();
+    await ref.read(authControllerProvider.notifier).signOut();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profil berhasil diperbarui.'),
-        ),
-      );
-    }
+    if (!context.mounted) return;
+
+    context.go('/login');
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileControllerProvider);
+    final bookingsState = ref.watch(customerBookingsControllerProvider);
+    final favoritesState = ref.watch(favoritesControllerProvider);
+
+    final totalBookings = bookingsState.asData?.value.bookings.length ?? 0;
+    final totalFavorites = favoritesState.asData?.value.favorites.length ?? 0;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Profil Saya'),
+        title: const Text(
+          'Profil',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ),
       body: profileState.when(
         loading: () => const Center(
@@ -66,58 +96,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         data: (state) {
           final profile = state.profile;
 
-          if (!_hasFilledInitialValue) {
-            _nameController.text = profile.fullName;
-            _phoneController.text = profile.phone ?? '';
-            _hasFilledInitialValue = true;
-          }
-
           return RefreshIndicator(
-            onRefresh: () {
-              _hasFilledInitialValue = false;
-              return ref.read(profileControllerProvider.notifier).refresh();
+            onRefresh: () async {
+              await Future.wait([
+                ref.read(profileControllerProvider.notifier).refresh(),
+                ref.read(customerBookingsControllerProvider.notifier).refresh(),
+                ref.read(favoritesControllerProvider.notifier).refresh(),
+              ]);
             },
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(22, 18, 22, 120),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 36, 24, 120),
               children: [
                 _ProfileHeader(
                   fullName: profile.fullName,
                   email: profile.email,
-                  role: profile.role,
+                  avatarUrl: _safeAvatarUrl(profile),
                 ),
-                const SizedBox(height: 18),
-                _InfoCard(
-                  title: 'Informasi Akun',
+                const SizedBox(height: 34),
+                Row(
                   children: [
-                    _InfoRow(label: 'Email', value: profile.email),
-                    _InfoRow(label: 'Role', value: profile.role),
-                    _InfoRow(
-                      label: 'Status',
-                      value: profile.isActive ? 'Aktif' : 'Nonaktif',
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.receipt_long_outlined,
+                        value: totalBookings.toString(),
+                        label: 'Total Pesanan',
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.favorite_rounded,
+                        value: totalFavorites.toString(),
+                        label: 'Favorit',
+                        iconColor: AppColors.danger,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                _EditProfileCard(
-                  nameController: _nameController,
-                  phoneController: _phoneController,
-                  isUpdating: state.isUpdating,
-                  onSubmit: _submit,
+                const SizedBox(height: 28),
+                _MenuCard(
+                  children: [
+                    _ProfileMenuTile(
+                      icon: Icons.manage_accounts_outlined,
+                      label: 'Edit Profil',
+                      onTap: () {
+                        context.push('/customer/profile/edit');
+                      },
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    _ProfileMenuTile(
+                      icon: Icons.logout_rounded,
+                      label: 'Keluar',
+                      isDanger: true,
+                      onTap: () => _logout(context, ref),
+                    ),
+                  ],
                 ),
-                if (state.errorMessage != null) ...[
-                  const SizedBox(height: 14),
-                  _MessageBox(
-                    message: state.errorMessage!,
-                    isError: true,
-                  ),
-                ],
-                if (state.successMessage != null) ...[
-                  const SizedBox(height: 14),
-                  _MessageBox(
-                    message: state.successMessage!,
-                    isError: false,
-                  ),
-                ],
               ],
             ),
           );
@@ -125,17 +160,76 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
   }
+
+  static String _safeAvatarUrl(Object profile) {
+    try {
+      final dynamic value = profile;
+      final raw = value.avatarPath?.toString() ?? '';
+
+      if (raw.trim().isNotEmpty &&
+          raw.startsWith('http') &&
+          !raw.contains('example.com')) {
+        return raw.trim();
+      }
+    } catch (_) {}
+
+    return '';
+  }
 }
 
 class _ProfileHeader extends StatelessWidget {
   final String fullName;
   final String email;
-  final String role;
+  final String avatarUrl;
 
   const _ProfileHeader({
     required this.fullName,
     required this.email,
-    required this.role,
+    required this.avatarUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = fullName.trim().isEmpty ? 'Customer' : fullName.trim();
+
+    return Column(
+      children: [
+        _AvatarCircle(fullName: displayName, avatarUrl: avatarUrl, size: 108),
+        const SizedBox(height: 18),
+        Text(
+          displayName,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 25,
+            fontWeight: FontWeight.w900,
+            height: 1.15,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          email,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AvatarCircle extends StatelessWidget {
+  final String fullName;
+  final String avatarUrl;
+  final double size;
+
+  const _AvatarCircle({
+    required this.fullName,
+    required this.avatarUrl,
+    required this.size,
   });
 
   @override
@@ -143,75 +237,52 @@ class _ProfileHeader extends StatelessWidget {
     final initials = _initials(fullName);
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: size,
+      height: size,
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: AppColors.black,
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Center(
-              child: Text(
-                initials,
-                style: const TextStyle(
-                  color: AppColors.black,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
+        color: AppColors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  fullName,
+        ],
+      ),
+      child: ClipOval(
+        child: avatarUrl.trim().isEmpty
+            ? Container(
+                color: AppColors.primary,
+                alignment: Alignment.center,
+                child: Text(
+                  initials,
                   style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 22,
+                    color: AppColors.black,
+                    fontSize: 30,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  email,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
+              )
+            : Image.network(
+                avatarUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
                     color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    role.toUpperCase(),
-                    style: const TextStyle(
-                      color: AppColors.black,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                    alignment: Alignment.center,
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: AppColors.black,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+                  );
+                },
+              ),
       ),
     );
   }
@@ -229,51 +300,57 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-class _EditProfileCard extends StatelessWidget {
-  final TextEditingController nameController;
-  final TextEditingController phoneController;
-  final bool isUpdating;
-  final VoidCallback onSubmit;
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color? iconColor;
 
-  const _EditProfileCard({
-    required this.nameController,
-    required this.phoneController,
-    required this.isUpdating,
-    required this.onSubmit,
+  const _StatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Edit Profil',
+    return Container(
+      height: 132,
+      padding: const EdgeInsets.fromLTRB(22, 22, 18, 18),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
-            controller: nameController,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              labelText: 'Nama Lengkap',
-              prefixIcon: Icon(Icons.person_rounded),
+          Icon(icon, color: iconColor ?? AppColors.textPrimary, size: 25),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              height: 1,
             ),
           ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: phoneController,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.done,
-            decoration: const InputDecoration(
-              labelText: 'Nomor HP',
-              prefixIcon: Icon(Icons.phone_rounded),
+          const Spacer(),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
             ),
-          ),
-          const SizedBox(height: 18),
-          AppButton(
-            text: isUpdating ? 'Menyimpan...' : 'Simpan Perubahan',
-            icon: Icons.save_rounded,
-            backgroundColor: AppColors.black,
-            foregroundColor: AppColors.white,
-            isLoading: isUpdating,
-            onPressed: isUpdating ? null : onSubmit,
           ),
         ],
       ),
@@ -281,126 +358,82 @@ class _EditProfileCard extends StatelessWidget {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final String title;
+class _MenuCard extends StatelessWidget {
   final List<Widget> children;
 
-  const _InfoCard({
-    required this.title,
-    required this.children,
-  });
+  const _MenuCard({required this.children});
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      title: title,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(children: children),
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
-
-  const _SectionCard({
-    required this.title,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
+class _ProfileMenuTile extends StatelessWidget {
+  final IconData icon;
   final String label;
-  final String value;
+  final bool isDanger;
+  final VoidCallback onTap;
 
-  const _InfoRow({
+  const _ProfileMenuTile({
+    required this.icon,
     required this.label,
-    required this.value,
+    required this.onTap,
+    this.isDanger = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 11),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 105,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w700,
+    final color = isDanger ? AppColors.danger : AppColors.textPrimary;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 18, 18, 18),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: isDanger
+                    ? AppColors.danger.withValues(alpha: 0.08)
+                    : AppColors.input,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w900,
-              ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isDanger ? AppColors.danger : AppColors.textSecondary,
+              size: 25,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MessageBox extends StatelessWidget {
-  final String message;
-  final bool isError;
-
-  const _MessageBox({
-    required this.message,
-    required this.isError,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isError ? AppColors.danger : AppColors.success;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w800,
+          ],
         ),
       ),
     );
@@ -411,10 +444,7 @@ class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _ErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {

@@ -8,7 +8,8 @@ import '../../../core/utils/error_message.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../data/models/admin_dashboard_model.dart';
 import 'providers/admin_dashboard_provider.dart';
-import '../../auth/providers/auth_provider.dart';
+import '../../../data/models/admin_booking_model.dart';
+import '../bookings/providers/admin_bookings_provider.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -16,184 +17,223 @@ class AdminDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardState = ref.watch(adminDashboardControllerProvider);
+    final adminBookingsState = ref.watch(adminBookingsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard Admin'),
-        actions: [
-          IconButton(
-            tooltip: 'Logout',
-            onPressed: () => _logout(context, ref),
-            icon: const Icon(Icons.logout_rounded),
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: dashboardState.when(
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
-        ],
-      ),
-      body: dashboardState.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-        error: (error, stackTrace) => _ErrorState(
-          message: readableError(error),
-          onRetry: () {
-            ref.read(adminDashboardControllerProvider.notifier).refresh();
+          error: (error, stackTrace) => _ErrorState(
+            message: readableError(error),
+            onRetry: () {
+              ref.read(adminDashboardControllerProvider.notifier).refresh();
+            },
+          ),
+          data: (dashboard) {
+            final adminBookings =
+                adminBookingsState.asData?.value.bookings ??
+                const <AdminBookingModel>[];
+            return RefreshIndicator(
+              onRefresh: () {
+                return ref
+                    .read(adminDashboardControllerProvider.notifier)
+                    .refresh();
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(28, 22, 28, 110),
+                children: [
+                  const _DashboardHeader(),
+                  const SizedBox(height: 28),
+                  _SummaryGrid(
+                    summary: dashboard.summary,
+                    statusDistribution: dashboard.statusDistribution,
+                    adminBookings: adminBookings,
+                  ),
+                  const SizedBox(height: 24),
+                  _RecentBookingsHeader(
+                    onSeeAll: () {
+                      context.go('/admin/bookings');
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _RecentBookingsSection(
+                    recentBookings: dashboard.recentBookings,
+                    adminBookings: adminBookings,
+                  ),
+                ],
+              ),
+            );
           },
         ),
-        data: (dashboard) {
-          return RefreshIndicator(
-            onRefresh: () {
-              return ref
-                  .read(adminDashboardControllerProvider.notifier)
-                  .refresh();
-            },
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-              children: [
-                const Text(
-                  'Ringkasan SELECT',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Pantau booking, barang, verifikasi, dan pendapatan sewa.',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _SummaryGrid(summary: dashboard.summary),
-                const SizedBox(height: 20),
-                _QuickActions(),
-                const SizedBox(height: 20),
-                _StatusDistributionSection(
-                  statusDistribution: dashboard.statusDistribution,
-                ),
-                const SizedBox(height: 20),
-                _TopItemsSection(topItems: dashboard.topItems),
-                const SizedBox(height: 20),
-                _RecentBookingsSection(
-                  recentBookings: dashboard.recentBookings,
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }
+}
 
-  Future<void> _logout(BuildContext context, WidgetRef ref) async {
-    await ref.read(authControllerProvider.notifier).signOut();
+class _DashboardHeader extends StatelessWidget {
+  const _DashboardHeader();
 
-    if (!context.mounted) return;
-
-    context.go('/login');
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Halo, Admin',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.textPrimary,
+          ),
+        ),
+      ],
+    );
   }
 }
 
 class _SummaryGrid extends StatelessWidget {
   final AdminDashboardSummary summary;
+  final List<AdminDashboardStatusCount> statusDistribution;
+  final List<AdminBookingModel> adminBookings;
 
-  const _SummaryGrid({required this.summary});
+  const _SummaryGrid({
+    required this.summary,
+    required this.statusDistribution,
+    required this.adminBookings,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final cards = [
-      _SummaryCardData(
-        title: 'User',
-        value: summary.totalUsers.toString(),
-        icon: Icons.people_alt_rounded,
-      ),
-      _SummaryCardData(
-        title: 'Barang',
-        value: summary.totalItems.toString(),
-        icon: Icons.devices_other_rounded,
-      ),
-      _SummaryCardData(
-        title: 'Booking',
-        value: summary.totalBookings.toString(),
-        icon: Icons.receipt_long_rounded,
-      ),
-      _SummaryCardData(
-        title: 'Pendapatan',
-        value: CurrencyFormatter.rupiah(summary.totalRevenue),
-        icon: Icons.payments_rounded,
-      ),
-      _SummaryCardData(
-        title: 'Verifikasi',
-        value: summary.pendingVerifications.toString(),
-        icon: Icons.verified_user_rounded,
-      ),
-      _SummaryCardData(
-        title: 'Aktif',
-        value: summary.activeRentals.toString(),
-        icon: Icons.play_circle_rounded,
-      ),
-    ];
+    final activeFromBookings = adminBookings.where((booking) {
+      return booking.status == 'ongoing' || booking.status == 'active';
+    }).length;
 
-    return GridView.builder(
-      itemCount: cards.length,
+    final completedFromBookings = adminBookings.where((booking) {
+      return booking.status == 'completed';
+    }).length;
+
+    final activeFromDistribution = _countStatuses(['ongoing', 'active']);
+
+    final completedFromDistribution = _countStatuses(['completed']);
+
+    final activeRentals = activeFromBookings > 0
+        ? activeFromBookings
+        : activeFromDistribution > 0
+        ? activeFromDistribution
+        : summary.activeRentals;
+
+    final completedBookings = completedFromBookings > 0
+        ? completedFromBookings
+        : completedFromDistribution;
+
+    return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
-        childAspectRatio: 1.08,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1.12,
       ),
-      itemBuilder: (context, index) {
-        return _SummaryCard(data: cards[index]);
-      },
+      children: [
+        _SummaryCard(
+          title: 'Total Barang',
+          value: summary.totalItems.toString(),
+          icon: Icons.inventory_2_outlined,
+        ),
+        _SummaryCard(
+          title: 'Sewa Aktif',
+          value: activeRentals.toString(),
+          icon: Icons.restart_alt_rounded,
+        ),
+        _SummaryCard(
+          title: 'Total Booking Selesai',
+          value: completedBookings.toString(),
+          icon: Icons.assignment_turned_in_outlined,
+        ),
+        _RevenueSummaryCard(
+          title: 'Total Pendapatan',
+          amount: summary.totalRevenue,
+          icon: Icons.payments_outlined,
+        ),
+      ],
     );
+  }
+
+  int _countStatuses(List<String> statuses) {
+    return statusDistribution.fold<int>(0, (total, item) {
+      if (statuses.contains(item.status)) {
+        return total + item.count;
+      }
+
+      return total;
+    });
   }
 }
 
 class _SummaryCard extends StatelessWidget {
-  final _SummaryCardData data;
+  final String title;
+  final String value;
+  final IconData icon;
 
-  const _SummaryCard({required this.data});
+  const _SummaryCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(data.icon, color: AppColors.black, size: 28),
+          _SmallIconBox(icon: icon),
           const Spacer(),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              data.value,
-              maxLines: 1,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
           Text(
-            data.title,
+            title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 25,
+              fontWeight: FontWeight.w900,
+              height: 1,
             ),
           ),
         ],
@@ -202,383 +242,574 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-class _QuickActions extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Akses Cepat',
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  label: 'Booking',
-                  icon: Icons.receipt_long_rounded,
-                  onTap: () => context.go('/admin/bookings'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ActionButton(
-                  label: 'KTP',
-                  icon: Icons.verified_user_rounded,
-                  onTap: () => context.go('/admin/verifications/identity'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  label: 'Barang',
-                  icon: Icons.devices_other_rounded,
-                  onTap: () => context.go('/admin/items'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ActionButton(
-                  label: 'User',
-                  icon: Icons.people_alt_rounded,
-                  onTap: () => context.go('/admin/users'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final String label;
+class _RevenueSummaryCard extends StatelessWidget {
+  final String title;
+  final num amount;
   final IconData icon;
-  final VoidCallback onTap;
 
-  const _ActionButton({
-    required this.label,
+  const _RevenueSummaryCard({
+    required this.title,
+    required this.amount,
     required this.icon,
-    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 58,
-      child: OutlinedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon),
-        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.black,
-          side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
-        ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SmallIconBox(icon: icon),
+          const Spacer(),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 5),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  const TextSpan(
+                    text: 'Rp ',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  TextSpan(
+                    text: _compactMoney(amount),
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 27,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  static String _compactMoney(num value) {
+    if (value >= 1000000000) {
+      return '${_clean(value / 1000000000)} M';
+    }
+
+    if (value >= 1000000) {
+      return '${_clean(value / 1000000)} jt';
+    }
+
+    if (value >= 1000) {
+      return '${_clean(value / 1000)} rb';
+    }
+
+    return value.toStringAsFixed(0);
+  }
+
+  static String _clean(num value) {
+    if (value % 1 == 0) {
+      return value.toStringAsFixed(0);
+    }
+
+    return value.toStringAsFixed(1);
+  }
 }
 
-class _StatusDistributionSection extends StatelessWidget {
-  final List<AdminDashboardStatusCount> statusDistribution;
+class _SmallIconBox extends StatelessWidget {
+  final IconData icon;
 
-  const _StatusDistributionSection({required this.statusDistribution});
+  const _SmallIconBox({required this.icon});
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Distribusi Status Booking',
-      child: statusDistribution.isEmpty
-          ? const _EmptyText(text: 'Belum ada data distribusi status.')
-          : Column(
-              children: statusDistribution.map((item) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _statusLabel(item.status),
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.22),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          item.count.toString(),
-                          style: const TextStyle(
-                            color: AppColors.black,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+    return Container(
+      width: 35,
+      height: 35,
+      decoration: BoxDecoration(
+        color: AppColors.input,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Icon(icon, color: AppColors.textSecondary, size: 22),
     );
   }
 }
 
-class _TopItemsSection extends StatelessWidget {
-  final List<AdminDashboardTopItem> topItems;
+class _RecentBookingsHeader extends StatelessWidget {
+  final VoidCallback onSeeAll;
 
-  const _TopItemsSection({required this.topItems});
+  const _RecentBookingsHeader({required this.onSeeAll});
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Barang Paling Sering Disewa',
-      child: topItems.isEmpty
-          ? const _EmptyText(text: 'Belum ada data barang teratas.')
-          : Column(
-              children: topItems.map((item) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.input,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.star_rounded, color: AppColors.black),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          item.name,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '${item.totalBookings}x',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Pesanan Terbaru',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
             ),
+          ),
+        ),
+        InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onSeeAll,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Text(
+              'Lihat Semua',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _RecentBookingsSection extends StatelessWidget {
   final List<AdminDashboardRecentBooking> recentBookings;
+  final List<AdminBookingModel> adminBookings;
 
-  const _RecentBookingsSection({required this.recentBookings});
+  const _RecentBookingsSection({
+    required this.recentBookings,
+    required this.adminBookings,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Booking Terbaru',
-      child: recentBookings.isEmpty
-          ? const _EmptyText(text: 'Belum ada booking terbaru.')
-          : Column(
-              children: recentBookings.map((booking) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.input,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.receipt_long_rounded,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              booking.code,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              booking.customerName,
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      _SmallStatusBadge(status: booking.status),
-                    ],
+    if (recentBookings.isEmpty) {
+      return const _EmptyRecentBookingCard();
+    }
+
+    return Column(
+      children: recentBookings.take(5).map((recentBooking) {
+        final matchedBooking = _findMatchingBooking(recentBooking);
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _RecentBookingCard(
+            booking: recentBooking,
+            matchedBooking: matchedBooking,
+            onTap: () {
+              if (matchedBooking == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Data detail booking belum termuat. Silakan buka dari menu Sewa.',
+                    ),
                   ),
                 );
-              }).toList(),
-            ),
-    );
-  }
-}
+                context.go('/admin/bookings');
+                return;
+              }
 
-class _SectionCard extends StatelessWidget {
-  final String title;
-  final Widget child;
-
-  const _SectionCard({required this.title, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 19,
-              fontWeight: FontWeight.w900,
-            ),
+              context.push<bool>(
+                '/admin/bookings/${matchedBooking.id}',
+                extra: matchedBooking,
+              );
+            },
           ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
+        );
+      }).toList(),
     );
+  }
+
+  AdminBookingModel? _findMatchingBooking(AdminDashboardRecentBooking recent) {
+    final recentId = _recentBookingId(recent);
+    final recentCode = _recentBookingCode(recent);
+
+    for (final booking in adminBookings) {
+      if (recentId > 0 && booking.id == recentId) {
+        return booking;
+      }
+
+      if (recentCode.isNotEmpty && booking.code == recentCode) {
+        return booking;
+      }
+    }
+
+    return null;
+  }
+
+  static int _recentBookingId(dynamic booking) {
+    try {
+      final value = booking.id;
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+    } catch (_) {}
+
+    try {
+      final value = booking.bookingId;
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+    } catch (_) {}
+
+    return 0;
+  }
+
+  static String _recentBookingCode(dynamic booking) {
+    try {
+      final value = booking.code?.toString() ?? '';
+      if (value.trim().isNotEmpty) return value.trim();
+    } catch (_) {}
+
+    try {
+      final value = booking.bookingCode?.toString() ?? '';
+      if (value.trim().isNotEmpty) return value.trim();
+    } catch (_) {}
+
+    return '';
   }
 }
 
-class _SmallStatusBadge extends StatelessWidget {
-  final String status;
+class _RecentBookingCard extends StatelessWidget {
+  final AdminDashboardRecentBooking booking;
+  final AdminBookingModel? matchedBooking;
+  final VoidCallback onTap;
 
-  const _SmallStatusBadge({required this.status});
+  const _RecentBookingCard({
+    required this.booking,
+    required this.matchedBooking,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(status);
+    final itemName = _itemName(booking, matchedBooking);
+    final customerName = _customerName(booking, matchedBooking);
+    final imageUrl = _imageUrl(booking, matchedBooking);
+    final dateText = _dateRangeText(booking, matchedBooking);
+    final amount = _totalAmount(booking, matchedBooking);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.13),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        _statusLabel(status),
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withValues(alpha: 0.05),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            _RecentBookingImage(imageUrl: imageUrl),
+            const SizedBox(width: 15),
+            Expanded(
+              child: SizedBox(
+                height: 82,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      itemName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      customerName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            dateText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            amount <= 0
+                                ? '-'
+                                : CurrencyFormatter.rupiah(amount),
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'paid':
-      case 'approved':
-      case 'ongoing':
-      case 'completed':
-        return AppColors.success;
-      case 'rejected':
-      case 'cancelled':
-      case 'expired':
-        return AppColors.danger;
-      default:
-        return AppColors.warning;
+  static String _itemName(dynamic recent, AdminBookingModel? matchedBooking) {
+    if (matchedBooking != null && matchedBooking.items.isNotEmpty) {
+      final dynamic first = matchedBooking.items.first;
+
+      try {
+        final value = first.itemName?.toString() ?? '';
+        if (value.trim().isNotEmpty) return value.trim();
+      } catch (_) {}
     }
+
+    try {
+      final value = recent.itemName?.toString() ?? '';
+      if (value.trim().isNotEmpty) return value.trim();
+    } catch (_) {}
+
+    try {
+      final value = recent.itemNameSnapshot?.toString() ?? '';
+      if (value.trim().isNotEmpty) return value.trim();
+    } catch (_) {}
+
+    try {
+      final value = recent.code?.toString() ?? '';
+      if (value.trim().isNotEmpty) return value.trim();
+    } catch (_) {}
+
+    return 'Pesanan';
+  }
+
+  static String _customerName(
+    dynamic recent,
+    AdminBookingModel? matchedBooking,
+  ) {
+    if (matchedBooking != null &&
+        matchedBooking.customerName.trim().isNotEmpty) {
+      return matchedBooking.customerName.trim();
+    }
+
+    try {
+      final value = recent.customerName?.toString() ?? '';
+      if (value.trim().isNotEmpty) return value.trim();
+    } catch (_) {}
+
+    return 'Customer';
+  }
+
+  static String _imageUrl(dynamic recent, AdminBookingModel? matchedBooking) {
+    if (matchedBooking != null && matchedBooking.items.isNotEmpty) {
+      final dynamic first = matchedBooking.items.first;
+
+      try {
+        final value = first.imageUrl?.toString() ?? '';
+        if (value.trim().isNotEmpty && !value.contains('example.com')) {
+          return value.trim();
+        }
+      } catch (_) {}
+
+      try {
+        final value = first.item?.primaryImage?.publicUrl?.toString() ?? '';
+        if (value.trim().isNotEmpty && !value.contains('example.com')) {
+          return value.trim();
+        }
+      } catch (_) {}
+    }
+
+    try {
+      final value = recent.imageUrl?.toString() ?? '';
+      if (value.trim().isNotEmpty && !value.contains('example.com')) {
+        return value.trim();
+      }
+    } catch (_) {}
+
+    return '';
+  }
+
+  static num _totalAmount(dynamic recent, AdminBookingModel? matchedBooking) {
+    if (matchedBooking != null) {
+      return matchedBooking.totalAmount;
+    }
+
+    try {
+      final value = recent.totalAmount;
+      if (value is num) return value;
+      if (value is String) return num.tryParse(value) ?? 0;
+    } catch (_) {}
+
+    return 0;
+  }
+
+  static String _dateRangeText(
+    dynamic recent,
+    AdminBookingModel? matchedBooking,
+  ) {
+    DateTime? start;
+    DateTime? end;
+
+    if (matchedBooking != null) {
+      start = matchedBooking.rentalStartDate;
+      end = matchedBooking.rentalEndDate;
+    }
+
+    try {
+      start ??= recent.rentalStartDate as DateTime?;
+      end ??= recent.rentalEndDate as DateTime?;
+    } catch (_) {}
+
+    try {
+      start ??= DateTime.tryParse(recent.rental_start_date.toString());
+      end ??= DateTime.tryParse(recent.rental_end_date.toString());
+    } catch (_) {}
+
+    if (start == null || end == null) return '-';
+
+    return '${start.day} - ${end.day} ${_monthName(end.month)} ${end.year}';
+  }
+
+  static String _monthName(int month) {
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+
+    if (month < 1 || month > 12) return '';
+
+    return months[month];
   }
 }
 
-class _EmptyText extends StatelessWidget {
-  final String text;
+class _RecentBookingImage extends StatelessWidget {
+  final String imageUrl;
 
-  const _EmptyText({required this.text});
+  const _RecentBookingImage({required this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: AppColors.textSecondary,
-        fontWeight: FontWeight.w600,
-        height: 1.5,
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: AppColors.black,
+        borderRadius: BorderRadius.circular(10),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: imageUrl.trim().isEmpty
+          ? const Center(
+              child: Icon(
+                Icons.camera_alt_rounded,
+                color: AppColors.white,
+                size: 28,
+              ),
+            )
+          : Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                  child: Icon(
+                    Icons.camera_alt_rounded,
+                    color: AppColors.white,
+                    size: 28,
+                  ),
+                );
+              },
+            ),
     );
   }
 }
 
-class _SummaryCardData {
-  final String title;
-  final String value;
-  final IconData icon;
+class _EmptyRecentBookingCard extends StatelessWidget {
+  const _EmptyRecentBookingCard();
 
-  const _SummaryCardData({
-    required this.title,
-    required this.value,
-    required this.icon,
-  });
-}
-
-String _statusLabel(String status) {
-  switch (status) {
-    case 'pending_verification':
-      return 'Menunggu Verifikasi';
-    case 'waiting_payment':
-      return 'Menunggu Pembayaran';
-    case 'payment_pending':
-      return 'Payment Pending';
-    case 'paid':
-      return 'Paid';
-    case 'approved':
-      return 'Approved';
-    case 'ongoing':
-    case 'active':
-      return 'Ongoing';
-    case 'completed':
-      return 'Selesai';
-    case 'rejected':
-      return 'Ditolak';
-    case 'cancelled':
-      return 'Batal';
-    case 'expired':
-      return 'Expired';
-    default:
-      return status;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Text(
+        'Belum ada pesanan terbaru.',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
   }
 }
 

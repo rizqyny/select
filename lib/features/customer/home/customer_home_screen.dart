@@ -6,12 +6,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/error_message.dart';
-import '../../../core/widgets/app_button.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../notifications/providers/device_token_provider.dart';
 import 'providers/customer_home_provider.dart';
 import 'widgets/customer_category_chip.dart';
 import 'widgets/customer_item_card.dart';
-import '../notifications/providers/device_token_provider.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -31,6 +30,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     Future.microtask(() {
       ref.read(deviceTokenControllerProvider.notifier).registerDevice();
     });
+
+    _searchController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -42,7 +45,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   void _onSearchChanged(String value) {
     _searchDebounce?.cancel();
-
     _searchDebounce = Timer(const Duration(milliseconds: 450), () {
       ref.read(customerHomeControllerProvider.notifier).setSearch(value);
     });
@@ -50,15 +52,38 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   Future<void> _logout() async {
     await ref.read(authControllerProvider.notifier).signOut();
-
     if (!mounted) return;
     context.go('/login');
   }
 
-  void _showComingSoon(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label akan dibuat pada part berikutnya.')),
-    );
+  IconData _iconForCategory(String name) {
+    final lower = name.toLowerCase();
+
+    if (lower.contains('handphone') || lower.contains('hp')) {
+      return Icons.smartphone_rounded;
+    }
+
+    if (lower.contains('camera') || lower.contains('kamera')) {
+      return Icons.camera_alt_outlined;
+    }
+
+    if (lower.contains('audio')) {
+      return Icons.speaker_outlined;
+    }
+
+    if (lower.contains('gaming') || lower.contains('game')) {
+      return Icons.sports_esports_outlined;
+    }
+
+    if (lower.contains('aksesoris') || lower.contains('aksesori')) {
+      return Icons.headphones_outlined;
+    }
+
+    if (lower.contains('laptop') || lower.contains('komputer')) {
+      return Icons.laptop_mac_outlined;
+    }
+
+    return Icons.widgets_outlined;
   }
 
   @override
@@ -73,172 +98,181 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          error: (error, stackTrace) => _ErrorState(
+          error: (error, _) => _ErrorState(
             message: readableError(error),
-            onRetry: () {
-              ref.read(customerHomeControllerProvider.notifier).refresh();
-            },
+            onRetry: () =>
+                ref.read(customerHomeControllerProvider.notifier).refresh(),
           ),
           data: (state) {
+            final featuredItem = state.items.isNotEmpty
+                ? state.items.first
+                : null;
+
             return RefreshIndicator(
-              onRefresh: () {
-                return ref
-                    .read(customerHomeControllerProvider.notifier)
-                    .refresh();
-              },
-              child: CustomScrollView(
+              onRefresh: () =>
+                  ref.read(customerHomeControllerProvider.notifier).refresh(),
+              child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
-                      child: _HomeHeader(
-                        name: user?.fullName.isNotEmpty == true
-                            ? user!.fullName
-                            : 'Customer',
-                        onLogout: _logout,
-                        onNotificationTap: () =>
-                            context.push('/customer/notifications'),
-                      ),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                children: [
+                  _HeaderSection(
+                    userName: user?.fullName.isNotEmpty == true
+                        ? user!.fullName
+                        : 'Customer',
+                    onNotificationTap: () =>
+                        context.push('/customer/notifications'),
+                    onLogoutTap: _logout,
+                  ),
+                  const SizedBox(height: 18),
+
+                  TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Cari kamera, laptop, atau lainnya...',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _searchController.text.isEmpty
+                          ? null
+                          : IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                _onSearchChanged('');
+                              },
+                              icon: const Icon(Icons.close_rounded),
+                            ),
                     ),
                   ),
 
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(22, 22, 22, 0),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _onSearchChanged,
-                        decoration: InputDecoration(
-                          hintText: 'Cari kamera, laptop, audio...',
-                          prefixIcon: const Icon(Icons.search_rounded),
-                          suffixIcon: _searchController.text.isEmpty
-                              ? null
-                              : IconButton(
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _onSearchChanged('');
-                                    setState(() {});
-                                  },
-                                  icon: const Icon(Icons.close_rounded),
-                                ),
+                  const SizedBox(height: 24),
+
+                  if (featuredItem != null)
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: AppColors.black,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: _FeaturedBanner(
+                        itemName: featuredItem.name,
+                        description:
+                            'Barang Favorit yang sering disewa pelanggan lain.',
+                        imageUrl: _safeImage(featuredItem),
+                      ),
+                    ),
+
+                  const SizedBox(height: 28),
+
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Kategori',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 10),
 
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 68,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(22, 18, 22, 8),
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          CustomerCategoryChip(
-                            label: 'Semua',
-                            isSelected: state.selectedCategoryId == null,
+                  SizedBox(
+                    height: 110,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        CustomerCategoryChip(
+                          label: 'Semua',
+                          icon: Icons.grid_view_rounded,
+                          isSelected: state.selectedCategoryId == null,
+                          onTap: () {
+                            ref
+                                .read(customerHomeControllerProvider.notifier)
+                                .setCategory(null);
+                          },
+                        ),
+                        ...state.categories.map(
+                          (category) => CustomerCategoryChip(
+                            label: category.name,
+                            icon: _iconForCategory(category.name),
+                            isSelected: state.selectedCategoryId == category.id,
                             onTap: () {
                               ref
                                   .read(customerHomeControllerProvider.notifier)
-                                  .setCategory(null);
+                                  .setCategory(category.id);
                             },
                           ),
-                          ...state.categories.map(
-                            (category) => CustomerCategoryChip(
-                              label: category.name,
-                              isSelected:
-                                  state.selectedCategoryId == category.id,
-                              onTap: () {
-                                ref
-                                    .read(
-                                      customerHomeControllerProvider.notifier,
-                                    )
-                                    .setCategory(category.id);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
 
-                  if (state.errorMessage != null)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppColors.danger.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Text(
-                            state.errorMessage!,
-                            style: const TextStyle(
-                              color: AppColors.danger,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                  const SizedBox(height: 18),
+
+                  if (state.errorMessage != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        state.errorMessage!,
+                        style: const TextStyle(
+                          color: AppColors.danger,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
+                    const SizedBox(height: 18),
+                  ],
 
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(22, 18, 22, 12),
-                      child: Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Alat Elektronik',
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          state.selectedCategoryId == null
+                              ? 'Semua Barang'
+                              : _selectedCategoryName(state),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textPrimary,
                           ),
-                          if (state.isLoadingItems)
-                            const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.4,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 12),
 
-                  if (state.items.isEmpty && !state.isLoadingItems)
-                    const SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: _EmptyItemState(),
+                  if (state.isLoadingItems)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     )
+                  else if (state.items.isEmpty)
+                    const _EmptyItemState()
                   else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
-                      sliver: SliverGrid(
-                        delegate: SliverChildBuilderDelegate((context, index) {
-                          final item = state.items[index];
-
-                          return CustomerItemCard(
-                            item: item,
-                            onTap: () {
-                              context.push('/customer/items/${item.id}');
-                            },
-                          );
-                        }, childCount: state.items.length),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 14,
-                              crossAxisSpacing: 14,
-                              childAspectRatio: 0.57,
-                            ),
+                    ...state.items.map(
+                      (item) => CustomerItemCard(
+                        item: item,
+                        rating: _safeRating(item),
+                        isFavorite: state.favoriteItemIds.contains(item.id),
+                        onTap: () => context.push('/customer/items/${item.id}'),
+                        onRentTap: () =>
+                            context.push('/customer/items/${item.id}'),
+                        onFavoriteTap: () async {
+                          await ref
+                              .read(customerHomeControllerProvider.notifier)
+                              .toggleFavorite(item);
+                        },
                       ),
                     ),
                 ],
@@ -247,102 +281,213 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           },
         ),
       ),
-      // bottomNavigationBar: NavigationBar(
-      //   selectedIndex: 0,
-      //   onDestinationSelected: (index) {
-      //     switch (index) {
-      //       case 0:
-      //         break;
-      //       case 1:
-      //         context.push('/customer/bookings');
-      //         break;
-      //       case 2:
-      //         _showComingSoon('Favorit');
-      //         break;
-      //       case 3:
-      //         context.push('/customer/profile');
-      //         break;
-      //     }
-      //   },
-      //   destinations: const [
-      //     NavigationDestination(
-      //       icon: Icon(Icons.home_outlined),
-      //       selectedIcon: Icon(Icons.home_rounded),
-      //       label: 'Beranda',
-      //     ),
-      //     NavigationDestination(
-      //       icon: Icon(Icons.receipt_long_outlined),
-      //       selectedIcon: Icon(Icons.receipt_long_rounded),
-      //       label: 'Pesanan',
-      //     ),
-      //     NavigationDestination(
-      //       icon: Icon(Icons.favorite_border_rounded),
-      //       selectedIcon: Icon(Icons.favorite_rounded),
-      //       label: 'Favorit',
-      //     ),
-      //     NavigationDestination(
-      //       icon: Icon(Icons.person_outline_rounded),
-      //       selectedIcon: Icon(Icons.person_rounded),
-      //       label: 'Profil',
-      //     ),
-      //   ],
-      // ),
     );
+  }
+
+  String _selectedCategoryName(CustomerHomeState state) {
+    final selected = state.categories.where(
+      (e) => e.id == state.selectedCategoryId,
+    );
+    if (selected.isEmpty) return 'Barang Favorit';
+    return selected.first.name;
+  }
+
+  static String _safeImage(dynamic item) {
+    try {
+      final imageUrl = item.imageUrl?.toString() ?? '';
+      return imageUrl;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static double _safeRating(dynamic item) {
+    try {
+      final raw = item.averageRating ?? item.rating ?? 4.8;
+      if (raw is num) return raw.toDouble();
+      return double.tryParse(raw.toString()) ?? 4.8;
+    } catch (_) {
+      return 4.8;
+    }
   }
 }
 
-class _HomeHeader extends StatelessWidget {
-  final String name;
-  final VoidCallback onLogout;
+class _HeaderSection extends StatelessWidget {
+  final String userName;
   final VoidCallback onNotificationTap;
+  final VoidCallback onLogoutTap;
 
-  const _HomeHeader({
-    required this.name,
-    required this.onLogout,
+  const _HeaderSection({
+    required this.userName,
     required this.onNotificationTap,
+    required this.onLogoutTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final firstName = userName.trim().isEmpty
+        ? 'Customer'
+        : userName.trim().split(' ').first;
+
     return Row(
       children: [
-        const CircleAvatar(
-          radius: 25,
-          backgroundColor: AppColors.primary,
-          child: Icon(Icons.person_rounded, color: AppColors.black, size: 28),
+        Container(
+          width: 54,
+          height: 54,
+          decoration: const BoxDecoration(
+            color: AppColors.primary,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.person_rounded,
+            color: AppColors.black,
+            size: 28,
+          ),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Halo,',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+          child: RichText(
+            text: TextSpan(
+              children: [
+                const TextSpan(
+                  text: 'Halo,\n',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+                TextSpan(
+                  text: firstName,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         IconButton(
           onPressed: onNotificationTap,
           icon: const Icon(Icons.notifications_none_rounded),
         ),
-        IconButton(onPressed: onLogout, icon: const Icon(Icons.logout_rounded)),
+        IconButton(
+          onPressed: onLogoutTap,
+          icon: const Icon(Icons.logout_rounded),
+        ),
       ],
+    );
+  }
+}
+
+class _FeaturedBanner extends StatelessWidget {
+  final String itemName;
+  final String description;
+  final String imageUrl;
+
+  const _FeaturedBanner({
+    required this.itemName,
+    required this.description,
+    required this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 185,
+      decoration: BoxDecoration(
+        color: const Color(0xFF232323),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 20, 14, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'TERPOPULER',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.6,
+                        color: AppColors.black,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    itemName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Text(
+                      description,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: AppColors.white.withValues(alpha: 0.72),
+                        fontSize: 13,
+                        height: 1.35,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 155,
+            height: double.infinity,
+            child: imageUrl.trim().isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const _BannerFallback();
+                    },
+                  )
+                : const _BannerFallback(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BannerFallback extends StatelessWidget {
+  const _BannerFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white12,
+      child: const Center(
+        child: Icon(Icons.image_outlined, color: Colors.white54, size: 40),
+      ),
     );
   }
 }
@@ -355,54 +500,29 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(26),
-      child: Center(
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(26),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.wifi_off_rounded,
-                color: AppColors.danger,
-                size: 46,
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 60,
+              color: AppColors.danger,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 14),
-              const Text(
-                'Gagal memuat data',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 20),
-              AppButton(
-                text: 'Coba Lagi',
-                icon: Icons.refresh_rounded,
-                backgroundColor: AppColors.black,
-                foregroundColor: AppColors.white,
-                onPressed: onRetry,
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: onRetry, child: const Text('Coba Lagi')),
+          ],
         ),
       ),
     );
@@ -414,38 +534,35 @@ class _EmptyItemState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return Container(
       padding: const EdgeInsets.all(26),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.inventory_2_outlined,
-              size: 58,
-              color: AppColors.textSecondary.withOpacity(0.7),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: const Column(
+        children: [
+          Icon(
+            Icons.inventory_2_outlined,
+            size: 56,
+            color: AppColors.textSecondary,
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Belum ada barang yang sesuai.',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
             ),
-            const SizedBox(height: 14),
-            const Text(
-              'Barang tidak ditemukan',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Coba gunakan kata kunci lain atau pilih kategori berbeda.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                height: 1.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Coba ubah kata kunci pencarian atau pilih kategori lain.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+          ),
+        ],
       ),
     );
   }

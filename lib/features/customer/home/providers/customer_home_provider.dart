@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/errors/api_exception.dart';
 import '../../../../data/models/category_model.dart';
 import '../../../../data/models/item_model.dart';
 import '../../../../data/providers/repository_providers.dart';
+import '../../../../data/repositories/favorite_repository.dart';
 import '../../../../data/repositories/item_repository.dart';
 
 const Object _unset = Object();
@@ -36,39 +38,37 @@ class CustomerHomeState {
   CustomerHomeState copyWith({
     List<CategoryModel>? categories,
     List<ItemModel>? items,
-    int? selectedCategoryId,
+    Object? selectedCategoryId = _unset,
     String? searchQuery,
     bool? isLoadingItems,
-    String? errorMessage,
+    Object? errorMessage = _unset,
     Set<int>? favoriteItemIds,
   }) {
     return CustomerHomeState(
       categories: categories ?? this.categories,
       items: items ?? this.items,
-      selectedCategoryId: selectedCategoryId ?? this.selectedCategoryId,
+      selectedCategoryId: identical(selectedCategoryId, _unset)
+          ? this.selectedCategoryId
+          : selectedCategoryId as int?,
       searchQuery: searchQuery ?? this.searchQuery,
       isLoadingItems: isLoadingItems ?? this.isLoadingItems,
-      errorMessage: errorMessage,
+      errorMessage: identical(errorMessage, _unset)
+          ? this.errorMessage
+          : errorMessage as String?,
       favoriteItemIds: favoriteItemIds ?? this.favoriteItemIds,
     );
   }
 }
 
-final customerHomeControllerProvider =
-    AsyncNotifierProvider<CustomerHomeController, CustomerHomeState>(
-      CustomerHomeController.new,
-    );
-
 class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
   ItemRepository get _itemRepository => ref.read(itemRepositoryProvider);
-  CategoryRepository get _categoryRepository =>
-      ref.read(categoryRepositoryProvider);
+
   FavoriteRepository get _favoriteRepository =>
       ref.read(favoriteRepositoryProvider);
 
   @override
-  Future<CustomerHomeState> build() async {
-    final categories = await _categoryRepository.fetchCategories();
+  FutureOr<CustomerHomeState> build() async {
+    final categories = await _itemRepository.fetchCategories();
     final items = await _itemRepository.fetchItems();
     final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
 
@@ -79,7 +79,7 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
       searchQuery: '',
       isLoadingItems: false,
       errorMessage: null,
-      favoriteItemIds: favoriteIds.toSet(),
+      favoriteItemIds: favoriteIds,
     );
   }
 
@@ -88,28 +88,24 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
 
     state = const AsyncLoading();
 
-    try {
-      final categories = await _categoryRepository.fetchCategories();
+    state = await AsyncValue.guard(() async {
+      final categories = await _itemRepository.fetchCategories();
       final items = await _itemRepository.fetchItems(
-        search: current?.searchQuery,
+        search: current?.searchQuery ?? '',
         categoryId: current?.selectedCategoryId,
       );
       final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
 
-      state = AsyncData(
-        CustomerHomeState(
-          categories: categories,
-          items: items,
-          selectedCategoryId: current?.selectedCategoryId,
-          searchQuery: current?.searchQuery ?? '',
-          isLoadingItems: false,
-          errorMessage: null,
-          favoriteItemIds: favoriteIds.toSet(),
-        ),
+      return CustomerHomeState(
+        categories: categories,
+        items: items,
+        selectedCategoryId: current?.selectedCategoryId,
+        searchQuery: current?.searchQuery ?? '',
+        isLoadingItems: false,
+        errorMessage: null,
+        favoriteItemIds: favoriteIds,
       );
-    } catch (e, st) {
-      state = AsyncError(e, st);
-    }
+    });
   }
 
   Future<void> setCategory(int? categoryId) async {
@@ -130,18 +126,26 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
         categoryId: categoryId,
       );
 
+      final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
+
+      final latest = state.value ?? current;
+
       state = AsyncData(
-        current.copyWith(
+        latest.copyWith(
           selectedCategoryId: categoryId,
           items: items,
           isLoadingItems: false,
+          errorMessage: null,
+          favoriteItemIds: favoriteIds,
         ),
       );
-    } catch (e) {
+    } catch (error) {
+      final latest = state.value ?? current;
+
       state = AsyncData(
-        current.copyWith(
+        latest.copyWith(
           isLoadingItems: false,
-          errorMessage: e.toString().replaceFirst('Exception: ', ''),
+          errorMessage: error.toString().replaceFirst('Exception: ', ''),
         ),
       );
     }
@@ -165,18 +169,26 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
         categoryId: current.selectedCategoryId,
       );
 
+      final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
+
+      final latest = state.value ?? current;
+
       state = AsyncData(
-        current.copyWith(
+        latest.copyWith(
           searchQuery: query,
           items: items,
           isLoadingItems: false,
+          errorMessage: null,
+          favoriteItemIds: favoriteIds,
         ),
       );
-    } catch (e) {
+    } catch (error) {
+      final latest = state.value ?? current;
+
       state = AsyncData(
-        current.copyWith(
+        latest.copyWith(
           isLoadingItems: false,
-          errorMessage: e.toString().replaceFirst('Exception: ', ''),
+          errorMessage: error.toString().replaceFirst('Exception: ', ''),
         ),
       );
     }
@@ -186,34 +198,61 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
     final current = state.value;
     if (current == null) return;
 
-    final currentFavorites = <int>{...current.favoriteItemIds};
-    final isFavorite = currentFavorites.contains(item.id);
+    final favoriteIds = <int>{...current.favoriteItemIds};
+    final alreadyFavorite = favoriteIds.contains(item.id);
 
-    if (isFavorite) {
-      currentFavorites.remove(item.id);
+    if (alreadyFavorite) {
+      favoriteIds.remove(item.id);
     } else {
-      currentFavorites.add(item.id);
+      favoriteIds.add(item.id);
     }
 
     state = AsyncData(
-      current.copyWith(favoriteItemIds: currentFavorites, errorMessage: null),
+      current.copyWith(favoriteItemIds: favoriteIds, errorMessage: null),
     );
 
     try {
-      if (isFavorite) {
+      if (alreadyFavorite) {
         await _favoriteRepository.removeFavorite(item.id);
       } else {
         await _favoriteRepository.addFavorite(item.id);
       }
 
-      ref.invalidate(myFavoritesControllerProvider);
-      ref.invalidate(itemDetailControllerProvider(item.id));
-    } catch (e) {
+      final latestFavoriteIds = await _favoriteRepository
+          .fetchMyFavoriteItemIds();
+
+      final latest = state.value ?? current;
+
+      state = AsyncData(
+        latest.copyWith(favoriteItemIds: latestFavoriteIds, errorMessage: null),
+      );
+    } catch (error) {
+      if (alreadyFavorite && _isFavoriteAlreadyRemoved(error)) {
+        final latest = state.value ?? current;
+
+        state = AsyncData(
+          latest.copyWith(favoriteItemIds: favoriteIds, errorMessage: null),
+        );
+        return;
+      }
+
       state = AsyncData(
         current.copyWith(
-          errorMessage: e.toString().replaceFirst('Exception: ', ''),
+          errorMessage: error.toString().replaceFirst('Exception: ', ''),
         ),
       );
     }
+  }
+
+  bool _isFavoriteAlreadyRemoved(Object error) {
+    if (error is ApiException && error.statusCode == 404) {
+      return true;
+    }
+
+    final message = error.toString().toLowerCase();
+
+    return message.contains('tidak ada') ||
+        message.contains('not found') ||
+        message.contains('favorite');
   }
 }

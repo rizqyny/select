@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/models/favorite_model.dart';
 import '../../../../data/providers/repository_providers.dart';
 import '../../../../data/repositories/favorite_repository.dart';
+import '../../home/providers/customer_home_provider.dart';
 
 const Object _unset = Object();
 
@@ -77,7 +78,6 @@ class FavoritesController extends AsyncNotifier<FavoritesState> {
     if (current == null) {
       state = await AsyncValue.guard(() async {
         final favorites = await _repository.fetchMyFavorites();
-
         return FavoritesState(favorites: favorites);
       });
 
@@ -94,19 +94,15 @@ class FavoritesController extends AsyncNotifier<FavoritesState> {
 
     try {
       if (alreadyFavorite) {
-        await _favoriteRepository.removeFavorite(itemId);
+        await _repository.removeFavorite(itemId);
 
-        ref.invalidate(myFavoritesControllerProvider);
-        ref.invalidate(customerHomeControllerProvider);
-        ref.invalidate(itemDetailControllerProvider(itemId));
-
-        final updated = current.favorites
+        final updatedFavorites = current.favorites
             .where((favorite) => favorite.itemId != itemId)
             .toList();
 
         state = AsyncData(
           current.copyWith(
-            favorites: updated,
+            favorites: updatedFavorites,
             updatingItemId: null,
             errorMessage: null,
           ),
@@ -124,6 +120,8 @@ class FavoritesController extends AsyncNotifier<FavoritesState> {
           ),
         );
       }
+
+      ref.invalidate(customerHomeControllerProvider);
 
       return true;
     } catch (error) {

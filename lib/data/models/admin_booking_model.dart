@@ -162,6 +162,7 @@ class AdminBookingItemModel {
   final String itemName;
   final String brand;
   final num dailyPrice;
+  final String imageUrl;
 
   const AdminBookingItemModel({
     required this.id,
@@ -169,39 +170,111 @@ class AdminBookingItemModel {
     required this.itemName,
     required this.brand,
     required this.dailyPrice,
+    required this.imageUrl,
   });
 
   factory AdminBookingItemModel.fromJson(Map<String, dynamic> json) {
     final item = json['item'] ?? json['items'];
 
-    if (item is Map<String, dynamic>) {
-      return AdminBookingItemModel(
-        id: _toInt(json['id']),
-        itemId: _toInt(item['id'] ?? json['item_id']),
-        itemName:
-            item['name']?.toString() ??
-            json['item_name']?.toString() ??
-            'Barang',
-        brand: item['brand']?.toString() ?? '-',
-        dailyPrice: _toNum(
-          item['daily_price'] ??
-              json['daily_price'] ??
-              json['unit_price'] ??
-              json['price_per_day'],
-        ),
-      );
-    }
+    final itemMap = item is Map<String, dynamic> ? item : <String, dynamic>{};
 
     return AdminBookingItemModel(
       id: _toInt(json['id']),
-      itemId: _toInt(json['item_id']),
+      itemId: _toInt(itemMap['id'] ?? json['item_id']),
       itemName:
-          json['item_name']?.toString() ?? json['name']?.toString() ?? 'Barang',
-      brand: json['brand']?.toString() ?? '-',
+          itemMap['name']?.toString() ??
+          json['item_name']?.toString() ??
+          json['name']?.toString() ??
+          'Barang',
+      brand: itemMap['brand']?.toString() ?? json['brand']?.toString() ?? '-',
       dailyPrice: _toNum(
-        json['daily_price'] ?? json['unit_price'] ?? json['price_per_day'],
+        itemMap['daily_price'] ??
+            itemMap['dailyPrice'] ??
+            itemMap['price_per_day'] ??
+            itemMap['pricePerDay'] ??
+            json['daily_price'] ??
+            json['dailyPrice'] ??
+            json['unit_price'] ??
+            json['unitPrice'] ??
+            json['price_per_day'] ??
+            json['pricePerDay'],
       ),
+      imageUrl: _extractImageUrl(json, itemMap),
     );
+  }
+
+  static String _extractImageUrl(
+    Map<String, dynamic> json,
+    Map<String, dynamic> item,
+  ) {
+    final directCandidates = [
+      json['image_url'],
+      json['imageUrl'],
+      json['public_url'],
+      json['publicUrl'],
+      json['photo_url'],
+      json['photoUrl'],
+      item['image_url'],
+      item['imageUrl'],
+      item['public_url'],
+      item['publicUrl'],
+      item['photo_url'],
+      item['photoUrl'],
+    ];
+
+    for (final value in directCandidates) {
+      final url = value?.toString().trim() ?? '';
+
+      if (url.isNotEmpty && !url.contains('example.com')) {
+        return url;
+      }
+    }
+
+    final primaryImage =
+        item['primary_image'] ??
+        item['primaryImage'] ??
+        json['primary_image'] ??
+        json['primaryImage'];
+
+    if (primaryImage is Map<String, dynamic>) {
+      final url =
+          primaryImage['public_url']?.toString().trim() ??
+          primaryImage['publicUrl']?.toString().trim() ??
+          primaryImage['image_url']?.toString().trim() ??
+          primaryImage['imageUrl']?.toString().trim() ??
+          '';
+
+      if (url.isNotEmpty && !url.contains('example.com')) {
+        return url;
+      }
+    }
+
+    final images =
+        item['images'] ??
+        item['item_images'] ??
+        item['itemImages'] ??
+        json['images'] ??
+        json['item_images'] ??
+        json['itemImages'];
+
+    if (images is List) {
+      for (final image in images) {
+        if (image is Map<String, dynamic>) {
+          final url =
+              image['public_url']?.toString().trim() ??
+              image['publicUrl']?.toString().trim() ??
+              image['image_url']?.toString().trim() ??
+              image['imageUrl']?.toString().trim() ??
+              '';
+
+          if (url.isNotEmpty && !url.contains('example.com')) {
+            return url;
+          }
+        }
+      }
+    }
+
+    return '';
   }
 
   static int _toInt(Object? value) {

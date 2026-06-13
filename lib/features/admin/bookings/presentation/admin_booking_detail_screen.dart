@@ -8,6 +8,8 @@ import '../../../../../data/models/admin_booking_model.dart';
 import '../../bookings/providers/admin_bookings_provider.dart';
 import '../../../../../data/models/admin_identity_verification_model.dart';
 import '../../verifications/providers/admin_identity_verifications_provider.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class AdminBookingDetailScreen extends ConsumerWidget {
   final AdminBookingModel booking;
@@ -647,11 +649,10 @@ class _IdentityVerificationCard extends StatelessWidget {
                     'Nama KTP: ${_emptyDash(verification.ktpName)}\nNomor KTP: ${_emptyDash(verification.ktpNumberMasked)}\nStatus: ${verification.status}',
               ),
               const SizedBox(height: 12),
-              _VerificationInfoBox(
-                icon: Icons.location_on_outlined,
-                title: 'Lokasi Verifikasi',
-                subtitle:
-                    '${_emptyDash(verification.addressText)}\nLat: ${verification.latitude}\nLong: ${verification.longitude}',
+              _VerificationLocationMapBox(
+                latitude: verification.latitude,
+                longitude: verification.longitude,
+                address: verification.addressText,
               ),
             ],
           ),
@@ -739,6 +740,168 @@ class _IdentityPhotoPreview extends ConsumerWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _VerificationLocationMapBox extends StatelessWidget {
+  final double latitude;
+  final double longitude;
+  final String address;
+
+  const _VerificationLocationMapBox({
+    required this.latitude,
+    required this.longitude,
+    required this.address,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasValidCoordinate = latitude != 0 && longitude != 0;
+    final point = LatLng(latitude, longitude);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: AppColors.input,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Lokasi Verifikasi',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (hasValidCoordinate)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                height: 190,
+                width: double.infinity,
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: point,
+                    initialZoom: 16,
+                    minZoom: 5,
+                    maxZoom: 18,
+                    interactionOptions: const InteractionOptions(
+                      flags:
+                          InteractiveFlag.drag |
+                          InteractiveFlag.pinchZoom |
+                          InteractiveFlag.doubleTapZoom,
+                    ),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.adrian.select',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: point,
+                          width: 46,
+                          height: 46,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.danger,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.white,
+                                width: 3,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.black.withOpacity(0.20),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.location_on_rounded,
+                              color: AppColors.white,
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    RichAttributionWidget(
+                      attributions: [
+                        TextSourceAttribution(
+                          'OpenStreetMap contributors',
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Container(
+              height: 190,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Center(
+                child: Text(
+                  'Koordinat lokasi tidak tersedia.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 12),
+
+          Text(
+            address.trim().isEmpty ? 'Alamat tidak tersedia' : address,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Lat: $latitude\nLong: $longitude',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1170,7 +1333,7 @@ class _ActionButtons extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: AppButton(
-              text: 'Setujui Pesanan',
+              text: 'Setujui',
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.black,
               onPressed: onApprove,

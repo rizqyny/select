@@ -21,13 +21,18 @@ class AdminItemsScreen extends ConsumerStatefulWidget {
 class _AdminItemsScreenState extends ConsumerState<AdminItemsScreen> {
   final _searchController = TextEditingController();
   Timer? _debounce;
+  String? _selectedFilter;
 
   static const _filters = <_ItemFilter>[
     _ItemFilter(label: 'Semua', value: null),
-    _ItemFilter(label: 'Available', value: 'available'),
-    _ItemFilter(label: 'Rented', value: 'rented'),
-    _ItemFilter(label: 'Maintenance', value: 'maintenance'),
-    _ItemFilter(label: 'Unavailable', value: 'unavailable'),
+    _ItemFilter(label: 'Handphone', value: 'handphone'),
+    _ItemFilter(label: 'Camera', value: 'camera'),
+    _ItemFilter(label: 'Audio', value: 'audio'),
+    _ItemFilter(label: 'Laptop', value: 'laptop'),
+    // _ItemFilter(label: 'Tersedia', value: 'available'),
+    // _ItemFilter(label: 'Disewa', value: 'rented'),
+    // _ItemFilter(label: 'Maintenance', value: 'maintenance'),
+    // _ItemFilter(label: 'Tidak Tersedia', value: 'unavailable'),
   ];
 
   @override
@@ -45,17 +50,56 @@ class _AdminItemsScreenState extends ConsumerState<AdminItemsScreen> {
     });
   }
 
+  Future<void> _openCreateItem() async {
+    final result = await context.push<bool>('/admin/items/create');
+
+    if (result == true && mounted) {
+      ref.read(adminItemsControllerProvider.notifier).refresh();
+    }
+  }
+
+  Future<void> _openEditItem(AdminItemModel item) async {
+    final result = await context.push<bool>(
+      '/admin/items/${item.id}/edit',
+      extra: item,
+    );
+
+    if (result == true && mounted) {
+      ref.read(adminItemsControllerProvider.notifier).refresh();
+    }
+  }
+
   Future<void> _confirmDelete(AdminItemModel item) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Hapus Barang?'),
-          content: Text('Barang "${item.name}" akan dihapus dari sistem.'),
+          backgroundColor: AppColors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+          title: const Text(
+            'Hapus Barang?',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          content: Text(
+            'Barang "${item.name}" akan dihapus dari sistem.',
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal'),
+              child: const Text(
+                'Batal',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
@@ -81,28 +125,174 @@ class _AdminItemsScreenState extends ConsumerState<AdminItemsScreen> {
     }
   }
 
+  bool _isCategoryFilter(String? value) {
+    return value == 'handphone' ||
+        value == 'camera' ||
+        value == 'audio' ||
+        value == 'laptop';
+  }
+
+  List<AdminItemModel> _visibleItems(
+    List<AdminItemModel> items,
+    String? selectedFilter,
+  ) {
+    if (!_isCategoryFilter(selectedFilter)) return items;
+
+    final filter = selectedFilter ?? '';
+
+    return items.where((item) {
+      final text = '${item.name} ${item.brand} ${item.categoryName}'
+          .toLowerCase();
+
+      if (filter == 'handphone') {
+        return text.contains('handphone') ||
+            text.contains('phone') ||
+            text.contains('hp') ||
+            text.contains('iphone') ||
+            text.contains('samsung');
+      }
+
+      if (filter == 'camera') {
+        return text.contains('camera') ||
+            text.contains('kamera') ||
+            text.contains('sony') ||
+            text.contains('canon') ||
+            text.contains('nikon') ||
+            text.contains('fujifilm');
+      }
+
+      if (filter == 'audio') {
+        return text.contains('audio') ||
+            text.contains('speaker') ||
+            text.contains('headphone') ||
+            text.contains('earphone') ||
+            text.contains('mic');
+      }
+
+      if (filter == 'laptop') {
+        return text.contains('laptop') ||
+            text.contains('macbook') ||
+            text.contains('asus') ||
+            text.contains('lenovo');
+      }
+
+      return true;
+    }).toList();
+  }
+
+  void _setFilter(String? value) {
+    setState(() {
+      _selectedFilter = value;
+    });
+
+    if (_isCategoryFilter(value)) {
+      ref.read(adminItemsControllerProvider.notifier).setStatus(null);
+      return;
+    }
+
+    ref.read(adminItemsControllerProvider.notifier).setStatus(value);
+  }
+
+  Future<void> _showFilterSheet(String? selectedValue) async {
+    final selected = await showModalBottomSheet<String?>(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Filter Barang',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: _filters.map((filter) {
+                    final selected = selectedValue == filter.value;
+
+                    return ChoiceChip(
+                      label: Text(filter.label),
+                      selected: selected,
+                      selectedColor: AppColors.black,
+                      backgroundColor: AppColors.white,
+                      side: const BorderSide(color: AppColors.border),
+                      labelStyle: TextStyle(
+                        color: selected
+                            ? AppColors.white
+                            : AppColors.textPrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      onSelected: (_) {
+                        Navigator.pop(context, filter.value);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+
+    _setFilter(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final itemsState = ref.watch(adminItemsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Manajemen Barang')),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.black,
-        foregroundColor: AppColors.white,
-        onPressed: () async {
-          final result = await context.push<bool>('/admin/items/create');
-
-          if (result == true && mounted) {
-            ref.read(adminItemsControllerProvider.notifier).refresh();
-          }
-        },
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(
-          'Tambah',
-          style: TextStyle(fontWeight: FontWeight.w900),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        centerTitle: true,
+        title: const Text(
+          'Barang',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'admin-add-item',
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.black,
+        elevation: 0,
+        onPressed: _openCreateItem,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'Tambah Barang',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: itemsState.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
@@ -121,103 +311,213 @@ class _AdminItemsScreenState extends ConsumerState<AdminItemsScreen> {
             );
           }
 
+          final selectedFilter = _selectedFilter ?? state.selectedStatus;
+          final visibleItems = _visibleItems(state.items, selectedFilter);
+
           return RefreshIndicator(
             onRefresh: () {
               return ref.read(adminItemsControllerProvider.notifier).refresh();
             },
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 100),
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 110),
               children: [
-                TextField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: 'Cari nama barang...',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    filled: true,
-                    fillColor: AppColors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(color: AppColors.border),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SearchBox(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                        onClear: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                          setState(() {});
+                        },
+                      ),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(color: AppColors.border),
+                    const SizedBox(width: 10),
+                    _FilterButton(
+                      onTap: () => _showFilterSheet(selectedFilter),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(color: AppColors.black),
-                    ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 18),
                 SizedBox(
-                  height: 46,
+                  height: 34,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _filters.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(width: 9),
                     itemBuilder: (context, index) {
                       final filter = _filters[index];
-                      final selected = state.selectedStatus == filter.value;
+                      final selected = selectedFilter == filter.value;
 
-                      return ChoiceChip(
-                        label: Text(filter.label),
-                        selected: selected,
-                        selectedColor: AppColors.black,
-                        backgroundColor: AppColors.white,
-                        side: const BorderSide(color: AppColors.border),
-                        labelStyle: TextStyle(
-                          color: selected
-                              ? AppColors.white
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        onSelected: (_) {
-                          ref
-                              .read(adminItemsControllerProvider.notifier)
-                              .setStatus(filter.value);
-                        },
+                      return _FilterChipButton(
+                        label: filter.label,
+                        isSelected: selected,
+                        onTap: () => _setFilter(filter.value),
                       );
                     },
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 if (state.errorMessage != null) ...[
                   _MessageBox(message: state.errorMessage!),
                   const SizedBox(height: 14),
                 ],
-                if (state.items.isEmpty)
+                if (visibleItems.isEmpty)
                   const _EmptyState()
                 else
-                  ...state.items.map((item) {
-                    final isDeleting = state.deletingId == item.id;
+                  GridView.builder(
+                    itemCount: visibleItems.length,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.68,
+                        ),
+                    itemBuilder: (context, index) {
+                      final item = visibleItems[index];
+                      final isDeleting = state.deletingId == item.id;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: _ItemCard(
+                      return _ItemCard(
                         item: item,
                         isDeleting: isDeleting,
+                        onEdit: () => _openEditItem(item),
                         onDelete: () => _confirmDelete(item),
-                        onEdit: () async {
-                          final result = await context.push<bool>(
-                            '/admin/items/${item.id}/edit',
-                            extra: item,
-                          );
-
-                          if (result == true && mounted) {
-                            ref
-                                .read(adminItemsControllerProvider.notifier)
-                                .refresh();
-                          }
-                        },
-                      ),
-                    );
-                  }),
+                      );
+                    },
+                  ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _SearchBox extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  const _SearchBox({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasText = controller.text.trim().isNotEmpty;
+
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          hintText: 'Cari barang...',
+          hintStyle: const TextStyle(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: AppColors.textSecondary,
+            size: 21,
+          ),
+          suffixIcon: hasText
+              ? IconButton(
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                )
+              : null,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 13),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _FilterButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: const Icon(Icons.tune_rounded, color: AppColors.textPrimary),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterChipButton extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FilterChipButton({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.black : AppColors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isSelected ? AppColors.black : AppColors.border,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? AppColors.white : AppColors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -238,82 +538,162 @@ class _ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          _ItemImage(url: item.imageUrl),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _StatusBadge(status: item.status),
-                const SizedBox(height: 8),
-                Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${item.brand} • ${item.categoryName}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  CurrencyFormatter.dailyPrice(item.dailyPrice),
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          isDeleting
-              ? const SizedBox(
-                  width: 34,
-                  height: 34,
-                  child: CircularProgressIndicator(
-                    color: AppColors.primary,
-                    strokeWidth: 3,
-                  ),
-                )
-              : PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      onEdit();
-                    }
+    final isAvailable = item.status == 'available';
 
-                    if (value == 'delete') {
-                      onDelete();
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Edit')),
-                    PopupMenuItem(value: 'delete', child: Text('Hapus')),
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onEdit,
+        onLongPress: onDelete,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.black.withValues(alpha: 0.04),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _ItemImage(url: item.imageUrl)),
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: _StatusBadge(status: item.status),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: isDeleting
+                          ? Container(
+                              width: 36,
+                              height: 36,
+                              alignment: Alignment.center,
+                              child: const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.3,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            )
+                          : PopupMenuButton<String>(
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                color: AppColors.white,
+                              ),
+                              color: AppColors.white,
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  onEdit();
+                                }
+
+                                if (value == 'delete') {
+                                  onDelete();
+                                }
+                              },
+                              itemBuilder: (context) => const [
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text('Edit'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Hapus'),
+                                ),
+                              ],
+                            ),
+                    ),
+                    if (!isAvailable)
+                      Positioned.fill(
+                        child: Container(
+                          color: AppColors.black.withValues(alpha: 0.34),
+                        ),
+                      ),
                   ],
                 ),
-        ],
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      _subtitle(item),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    RichText(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: CurrencyFormatter.rupiah(item.dailyPrice),
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const TextSpan(
+                            text: ' / hari',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  String _subtitle(AdminItemModel item) {
+    final brand = item.brand.trim();
+    final category = item.categoryName.trim();
+
+    if (brand.isNotEmpty && brand != '-') return brand;
+    if (category.isNotEmpty) return category;
+
+    return 'Barang elektronik';
   }
 }
 
@@ -324,29 +704,32 @@ class _ItemImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return url.trim().isEmpty
+        ? const _ImageFallback()
+        : Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const _ImageFallback();
+            },
+          );
+  }
+}
+
+class _ImageFallback extends StatelessWidget {
+  const _ImageFallback();
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: 78,
-      height: 78,
-      decoration: BoxDecoration(
-        color: AppColors.input,
-        borderRadius: BorderRadius.circular(20),
+      color: AppColors.input,
+      child: const Center(
+        child: Icon(
+          Icons.devices_other_rounded,
+          color: AppColors.textSecondary,
+          size: 34,
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: url.isEmpty
-          ? const Icon(
-              Icons.devices_other_rounded,
-              color: AppColors.textSecondary,
-            )
-          : Image.network(
-              url,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return const Icon(
-                  Icons.devices_other_rounded,
-                  color: AppColors.textSecondary,
-                );
-              },
-            ),
     );
   }
 }
@@ -363,15 +746,16 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(999),
+        color: color,
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         _label(status),
         style: TextStyle(
-          color: color,
-          fontSize: 10,
+          color: _textColor(status),
+          fontSize: 9,
           fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -380,28 +764,41 @@ class _StatusBadge extends StatelessWidget {
   Color _color(String status) {
     switch (status) {
       case 'available':
-        return AppColors.success;
+        return AppColors.primary;
       case 'rented':
       case 'maintenance':
       case 'unavailable':
-        return AppColors.danger;
+        return AppColors.white;
       default:
-        return AppColors.warning;
+        return AppColors.primary;
+    }
+  }
+
+  Color _textColor(String status) {
+    switch (status) {
+      case 'available':
+        return AppColors.black;
+      case 'rented':
+      case 'maintenance':
+      case 'unavailable':
+        return AppColors.textPrimary;
+      default:
+        return AppColors.black;
     }
   }
 
   String _label(String status) {
     switch (status) {
       case 'available':
-        return 'Available';
+        return 'TERSEDIA';
       case 'rented':
-        return 'Rented';
+        return 'DISEWA';
       case 'maintenance':
-        return 'Maintenance';
+        return 'SERVIS';
       case 'unavailable':
-        return 'Unavailable';
+        return 'NONAKTIF';
       default:
-        return status;
+        return status.toUpperCase();
     }
   }
 }
@@ -423,7 +820,7 @@ class _MessageBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.danger.withOpacity(0.1),
+        color: AppColors.danger.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Text(

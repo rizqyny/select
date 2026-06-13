@@ -24,10 +24,24 @@ class FavoriteRepository {
     }
   }
 
+  Future<Set<int>> fetchMyFavoriteItemIds() async {
+    final favorites = await fetchMyFavorites();
+    return favorites.map((item) => item.itemId).toSet();
+  }
+
   Future<void> addFavorite(int itemId) async {
     try {
       await _dio.post(ApiConstants.favoriteByItem(itemId));
     } on DioException catch (error) {
+      final statusCode = error.response?.statusCode;
+      final message = _extractErrorMessage(error).toLowerCase();
+
+      if (statusCode == 409 ||
+          message.contains('sudah') ||
+          message.contains('already')) {
+        return;
+      }
+
       throw _handleDioError(error);
     }
   }
@@ -36,6 +50,17 @@ class FavoriteRepository {
     try {
       await _dio.delete(ApiConstants.favoriteByItem(itemId));
     } on DioException catch (error) {
+      final statusCode = error.response?.statusCode;
+      final message = _extractErrorMessage(error).toLowerCase();
+
+      // Kalau dari home masih dianggap favorit, tapi backend sudah tidak punya data favorit,
+      // anggap sukses supaya icon love bisa ikut hilang dan tidak muncul snackbar error.
+      if (statusCode == 404 ||
+          message.contains('tidak ada') ||
+          message.contains('not found')) {
+        return;
+      }
+
       throw _handleDioError(error);
     }
   }
@@ -61,6 +86,18 @@ class FavoriteRepository {
     }
 
     return <dynamic>[];
+  }
+
+  String _extractErrorMessage(DioException error) {
+    final data = error.response?.data;
+
+    if (data is Map<String, dynamic>) {
+      return data['message']?.toString() ??
+          data['error']?.toString() ??
+          data.toString();
+    }
+
+    return error.message ?? 'Terjadi kesalahan koneksi.';
   }
 
   ApiException _handleDioError(DioException error) {

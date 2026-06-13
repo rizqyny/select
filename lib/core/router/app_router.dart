@@ -35,6 +35,7 @@ import '../../features/customer/reviews/presentation/review_form_screen.dart';
 import '../../features/customer/verification/presentation/condition_verification_screen.dart';
 import '../../features/customer/verification/presentation/identity_verification_screen.dart';
 import '../../features/customer/favorites/presentation/favorites_screen.dart';
+import '../../features/customer/profile/presentation/edit_profile_screen.dart';
 
 import '../../features/splash/splash_screen.dart';
 
@@ -99,6 +100,14 @@ final appRouter = GoRouter(
     // =========================
     // CUSTOMER DETAIL / ACTION ROUTES WITHOUT NAVBAR
     // =========================
+    GoRoute(
+      path: '/customer/profile/edit',
+      name: 'customer-edit-profile',
+      builder: (context, state) {
+        return const EditProfileScreen();
+      },
+    ),
+
     GoRoute(
       path: '/customer/items/:id',
       name: 'customer-item-detail',
@@ -227,6 +236,7 @@ final appRouter = GoRouter(
         return AdminBookingDetailScreen(booking: booking);
       },
     ),
+
     GoRoute(
       path: '/admin/verifications/identity/:id',
       name: 'admin-identity-verification-detail',

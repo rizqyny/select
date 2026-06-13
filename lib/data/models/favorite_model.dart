@@ -1,83 +1,123 @@
 class FavoriteItemModel {
-  final int favoriteId;
+  final int id;
   final int itemId;
   final String name;
   final String brand;
-  final String status;
-  final double dailyPrice;
   final String imageUrl;
+  final num dailyPrice;
 
   const FavoriteItemModel({
-    required this.favoriteId,
+    required this.id,
     required this.itemId,
     required this.name,
     required this.brand,
-    required this.status,
-    required this.dailyPrice,
     required this.imageUrl,
+    required this.dailyPrice,
   });
 
   factory FavoriteItemModel.fromJson(Map<String, dynamic> json) {
-    final item = _extractItem(json);
+    final rawItem =
+        json['item'] ??
+        json['items'] ??
+        json['item_detail'] ??
+        json['itemDetail'];
+
+    final item = rawItem is Map<String, dynamic>
+        ? rawItem
+        : <String, dynamic>{};
 
     return FavoriteItemModel(
-      favoriteId: _toInt(json['id']),
+      id: _toInt(json['id']),
       itemId: _toInt(
-        json['item_id'] ?? json['itemId'] ?? item['id'] ?? item['item_id'],
+        json['item_id'] ?? json['itemId'] ?? item['id'] ?? json['id'],
       ),
-      name: item['name']?.toString() ?? '-',
-      brand: item['brand']?.toString() ?? '-',
-      status: item['status']?.toString() ?? '-',
-      dailyPrice: _toDouble(
+      name:
+          item['name']?.toString() ??
+          json['item_name']?.toString() ??
+          json['name']?.toString() ??
+          'Barang',
+      brand: item['brand']?.toString() ?? json['brand']?.toString() ?? '-',
+      imageUrl: _extractImageUrl(json: json, item: item),
+      dailyPrice: _toNum(
         item['daily_price'] ??
             item['dailyPrice'] ??
-            item['price'] ??
-            item['rental_price'],
+            item['price_per_day'] ??
+            item['pricePerDay'] ??
+            json['daily_price'] ??
+            json['dailyPrice'] ??
+            json['price_per_day'] ??
+            json['pricePerDay'],
       ),
-      imageUrl: _extractImageUrl(item),
     );
   }
 
-  static Map<String, dynamic> _extractItem(Map<String, dynamic> json) {
-    final item =
-        json['item'] ??
-        json['items'] ??
-        json['electronic_item'] ??
-        json['electronicItem'];
+  static String _extractImageUrl({
+    required Map<String, dynamic> json,
+    required Map<String, dynamic> item,
+  }) {
+    final directCandidates = [
+      json['image_url'],
+      json['imageUrl'],
+      json['public_url'],
+      json['publicUrl'],
+      json['photo_url'],
+      json['photoUrl'],
+      item['image_url'],
+      item['imageUrl'],
+      item['public_url'],
+      item['publicUrl'],
+      item['photo_url'],
+      item['photoUrl'],
+    ];
 
-    if (item is Map<String, dynamic>) {
-      return item;
+    for (final value in directCandidates) {
+      final url = value?.toString().trim() ?? '';
+
+      if (url.isNotEmpty && !url.contains('example.com')) {
+        return url;
+      }
     }
 
-    return json;
-  }
+    final primaryImage =
+        item['primary_image'] ??
+        item['primaryImage'] ??
+        json['primary_image'] ??
+        json['primaryImage'];
 
-  static String _extractImageUrl(Map<String, dynamic> item) {
-    final direct =
-        item['image_url'] ??
-        item['imageUrl'] ??
-        item['primary_image_url'] ??
-        item['primaryImageUrl'] ??
-        item['public_url'];
+    if (primaryImage is Map<String, dynamic>) {
+      final url =
+          primaryImage['public_url']?.toString().trim() ??
+          primaryImage['publicUrl']?.toString().trim() ??
+          primaryImage['image_url']?.toString().trim() ??
+          primaryImage['imageUrl']?.toString().trim() ??
+          '';
 
-    if (direct != null && direct.toString().trim().isNotEmpty) {
-      return direct.toString();
+      if (url.isNotEmpty && !url.contains('example.com')) {
+        return url;
+      }
     }
 
-    final images = item['images'] ?? item['item_images'] ?? item['itemImages'];
+    final images =
+        item['images'] ??
+        item['item_images'] ??
+        item['itemImages'] ??
+        json['images'] ??
+        json['item_images'] ??
+        json['itemImages'];
 
     if (images is List && images.isNotEmpty) {
-      final first = images.first;
+      for (final image in images) {
+        if (image is Map<String, dynamic>) {
+          final url =
+              image['public_url']?.toString().trim() ??
+              image['publicUrl']?.toString().trim() ??
+              image['image_url']?.toString().trim() ??
+              image['imageUrl']?.toString().trim() ??
+              '';
 
-      if (first is Map<String, dynamic>) {
-        final url =
-            first['image_url'] ??
-            first['imageUrl'] ??
-            first['public_url'] ??
-            first['publicUrl'];
-
-        if (url != null && url.toString().trim().isNotEmpty) {
-          return url.toString();
+          if (url.isNotEmpty && !url.contains('example.com')) {
+            return url;
+          }
         }
       }
     }
@@ -89,15 +129,12 @@ class FavoriteItemModel {
     if (value is int) return value;
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value) ?? 0;
-
     return 0;
   }
 
-  static double _toDouble(Object? value) {
-    if (value is double) return value;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0;
-
+  static num _toNum(Object? value) {
+    if (value is num) return value;
+    if (value is String) return num.tryParse(value) ?? 0;
     return 0;
   }
 }
