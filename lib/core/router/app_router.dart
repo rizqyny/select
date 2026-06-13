@@ -20,6 +20,7 @@ import '../../features/admin/verifications/presentation/admin_condition_verifica
 import '../../features/admin/verifications/presentation/admin_identity_verification_detail_screen.dart';
 import '../../features/admin/verifications/presentation/admin_identity_verifications_screen.dart';
 import '../../features/admin/profile/presentation/admin_profile_screen.dart';
+import '../../features/admin/profile/presentation/admin_edit_profile_screen.dart';
 
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
@@ -100,6 +101,13 @@ final appRouter = GoRouter(
     // =========================
     // CUSTOMER DETAIL / ACTION ROUTES WITHOUT NAVBAR
     // =========================
+    GoRoute(
+      path: '/admin/profile/edit',
+      name: 'admin-edit-profile',
+      builder: (context, state) {
+        return const AdminEditProfileScreen();
+      },
+    ),
     GoRoute(
       path: '/customer/profile/edit',
       name: 'customer-edit-profile',
