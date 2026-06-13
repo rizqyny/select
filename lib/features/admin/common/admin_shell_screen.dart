@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 
 class AdminShellScreen extends StatelessWidget {
-  final Widget child;
   final String location;
+  final Widget child;
 
   const AdminShellScreen({
     super.key,
-    required this.child,
     required this.location,
+    required this.child,
   });
 
   int get _selectedIndex {
@@ -18,16 +18,12 @@ class AdminShellScreen extends StatelessWidget {
       return 1;
     }
 
-    if (location.startsWith('/admin/verifications/identity')) {
+    if (location.startsWith('/admin/items')) {
       return 2;
     }
 
-    if (location.startsWith('/admin/verifications/condition')) {
+    if (location.startsWith('/admin/profile')) {
       return 3;
-    }
-
-    if (location.startsWith('/admin/items')) {
-      return 4;
     }
 
     return 0;
@@ -42,13 +38,10 @@ class AdminShellScreen extends StatelessWidget {
         context.go('/admin/bookings');
         break;
       case 2:
-        context.go('/admin/verifications/identity');
+        context.go('/admin/items');
         break;
       case 3:
-        context.go('/admin/verifications/condition');
-        break;
-      case 4:
-        context.go('/admin/items');
+        context.go('/admin/profile');
         break;
     }
   }
@@ -57,40 +50,79 @@ class AdminShellScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        backgroundColor: AppColors.white,
-        indicatorColor: AppColors.primary.withOpacity(0.35),
-        onDestinationSelected: (index) {
-          _onDestinationSelected(context, index);
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Dashboard',
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.black.withOpacity(0.08),
+                blurRadius: 18,
+                offset: const Offset(0, -6),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long_rounded),
-            label: 'Booking',
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              backgroundColor: AppColors.white,
+              indicatorColor: AppColors.primary,
+              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
+                states,
+              ) {
+                final isSelected = states.contains(WidgetState.selected);
+
+                return TextStyle(
+                  color: isSelected ? AppColors.black : AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                );
+              }),
+              iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((
+                states,
+              ) {
+                final isSelected = states.contains(WidgetState.selected);
+
+                return IconThemeData(
+                  color: isSelected ? AppColors.black : AppColors.textSecondary,
+                  size: 24,
+                );
+              }),
+            ),
+            child: NavigationBar(
+              selectedIndex: _selectedIndex,
+              height: 72,
+              elevation: 0,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              onDestinationSelected: (index) {
+                _onDestinationSelected(context, index);
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard_rounded),
+                  label: 'Beranda',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.receipt_long_outlined),
+                  selectedIcon: Icon(Icons.receipt_long_rounded),
+                  label: 'Sewa',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.inventory_2_outlined),
+                  selectedIcon: Icon(Icons.inventory_2_rounded),
+                  label: 'Barang',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.person_outline_rounded),
+                  selectedIcon: Icon(Icons.person_rounded),
+                  label: 'Profil',
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.verified_user_outlined),
-            selectedIcon: Icon(Icons.verified_user_rounded),
-            label: 'KTP',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.fact_check_outlined),
-            selectedIcon: Icon(Icons.fact_check_rounded),
-            label: 'Kondisi',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.devices_other_outlined),
-            selectedIcon: Icon(Icons.devices_other_rounded),
-            label: 'Barang',
-          ),
-        ],
+        ),
       ),
     );
   }
