@@ -27,6 +27,18 @@ class PaymentRepository {
     }
   }
 
+  Future<PaymentModel> simulatePaymentPaidByBooking(int bookingId) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.simulatePaymentPaidByBooking(bookingId),
+      );
+
+      return _parsePayment(response.data);
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    }
+  }
+
   PaymentModel _parsePayment(Object? body) {
     if (body is Map<String, dynamic>) {
       final data = body['data'];

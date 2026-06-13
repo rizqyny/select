@@ -364,4 +364,46 @@ class BookingDetailController extends AsyncNotifier<BookingDetailState> {
       value,
     );
   }
+
+  Future<PaymentModel?> simulatePaymentPaid() async {
+    final current = state.value;
+
+    if (current == null) return null;
+
+    state = AsyncData(
+      current.copyWith(isCreatingPayment: true, errorMessage: null),
+    );
+
+    try {
+      final payment = await _paymentRepository.simulatePaymentPaidByBooking(
+        current.booking.id,
+      );
+
+      final latestBooking = await _bookingRepository.fetchBookingDetail(
+        current.booking.id,
+      );
+
+      state = AsyncData(
+        current.copyWith(
+          booking: latestBooking,
+          payment: payment,
+          isCreatingPayment: false,
+          errorMessage: null,
+        ),
+      );
+
+      return payment;
+    } catch (error) {
+      final latest = state.value ?? current;
+
+      state = AsyncData(
+        latest.copyWith(
+          isCreatingPayment: false,
+          errorMessage: error.toString().replaceFirst('Exception: ', ''),
+        ),
+      );
+
+      return null;
+    }
+  }
 }

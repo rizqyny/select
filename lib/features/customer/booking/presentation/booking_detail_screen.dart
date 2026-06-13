@@ -20,6 +20,12 @@ class BookingDetailScreen extends ConsumerWidget {
     switch (status) {
       case 'pending_verification':
         return 'Silakan verifikasi KTP terlebih dahulu.';
+      case 'waiting_payment':
+        return 'Silakan lakukan pembayaran terlebih dahulu.';
+      case 'payment_pending':
+        return 'Menunggu konfirmasi pembayaran.';
+      case 'paid':
+        return 'Pembayaran berhasil. Menunggu admin menyetujui pesanan.';
       case 'rejected':
         return 'Booking ditolak oleh admin.';
       case 'cancelled':
@@ -27,21 +33,18 @@ class BookingDetailScreen extends ConsumerWidget {
       case 'expired':
         return 'Booking sudah kedaluwarsa.';
       case 'approved':
-        return 'Booking sudah disetujui admin.';
+        return 'Pesanan sudah disetujui. Silakan verifikasi kondisi awal barang.';
       case 'ongoing':
         return 'Masa sewa sedang berlangsung.';
       case 'completed':
         return 'Booking sudah selesai.';
       default:
-        return 'Booking belum berada pada status menunggu pembayaran.';
+        return 'Tidak ada aksi untuk status booking ini.';
     }
   }
 
   bool _needsBeforeConditionVerification(BookingModel booking) {
-    return booking.status == 'payment_pending' ||
-        booking.status == 'paid' ||
-        booking.status == 'waiting_admin_approval' ||
-        booking.status == 'approved';
+    return booking.status == 'approved';
   }
 
   Future<void> _createOrOpenPayment(
@@ -91,14 +94,28 @@ class BookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (result == true) {
-      await ref
+      final paymentResult = await ref
           .read(bookingDetailControllerProvider(bookingId).notifier)
-          .refresh();
+          .simulatePaymentPaid();
 
       if (!context.mounted) return;
 
+      if (paymentResult == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal menyimulasikan pembayaran berhasil.'),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Status pembayaran diperbarui.')),
+        const SnackBar(
+          content: Text(
+            'Pembayaran berhasil. Menunggu admin menyetujui pesanan.',
+          ),
+        ),
       );
     }
   }
@@ -218,62 +235,106 @@ class BookingDetailScreen extends ConsumerWidget {
                 color: AppColors.white,
                 border: Border(top: BorderSide(color: AppColors.border)),
               ),
-              child: alreadyPaid
-                  ? const Text(
-                      'Pembayaran sudah selesai.',
+              child: Builder(
+                builder: (context) {
+                  final paymentStatus =
+                      payment?.status.toLowerCase() ??
+                      booking.paymentStatus?.toLowerCase() ??
+                      '';
+
+                  final alreadyPaid =
+                      payment?.isPaid == true ||
+                      booking.status == 'paid' ||
+                      paymentStatus == 'paid' ||
+                      paymentStatus == 'settlement' ||
+                      paymentStatus == 'capture';
+
+                  final needsConditionVerification =
+                      _needsBeforeConditionVerification(booking);
+
+                  if (booking.needsIdentityVerification) {
+                    if (state.hasSubmittedIdentityVerification) {
+                      return const Text(
+                        'Verifikasi KTP sudah dikirim. Menunggu persetujuan admin.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.w900,
+                          height: 1.4,
+                        ),
+                      );
+                    }
+
+                    return AppButton(
+                      text: 'Verifikasi KTP',
+                      icon: Icons.badge_rounded,
+                      backgroundColor: AppColors.black,
+                      foregroundColor: AppColors.white,
+                      onPressed: () {
+                        _openIdentityVerification(context, ref, booking);
+                      },
+                    );
+                  }
+
+                  if (booking.canPay && !alreadyPaid) {
+                    return AppButton(
+                      text: state.isCreatingPayment
+                          ? 'Membuat Pembayaran...'
+                          : 'Bayar Sekarang',
+                      icon: Icons.payment_rounded,
+                      backgroundColor: AppColors.black,
+                      foregroundColor: AppColors.white,
+                      isLoading: state.isCreatingPayment,
+                      onPressed: state.isCreatingPayment
+                          ? null
+                          : () => _createOrOpenPayment(context, ref, state),
+                    );
+                  }
+
+                  if (booking.status == 'payment_pending') {
+                    return const Text(
+                      'Menunggu konfirmasi pembayaran.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppColors.success,
+                        color: AppColors.warning,
                         fontWeight: FontWeight.w900,
+                        height: 1.4,
                       ),
-                    )
-                  : booking.needsIdentityVerification
-                  ? state.hasSubmittedIdentityVerification
-                        ? const Text(
-                            'Verifikasi KTP sudah dikirim. Menunggu persetujuan admin.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.warning,
-                              fontWeight: FontWeight.w900,
-                              height: 1.4,
-                            ),
-                          )
-                        : AppButton(
-                            text: 'Verifikasi KTP',
-                            icon: Icons.badge_rounded,
-                            backgroundColor: AppColors.black,
-                            foregroundColor: AppColors.white,
-                            onPressed: () {
-                              _openIdentityVerification(context, ref, booking);
-                            },
-                          )
-                  : _needsBeforeConditionVerification(booking)
-                  ? state.hasSubmittedBeforeConditionVerification
-                        ? const Text(
-                            'Verifikasi kondisi awal barang sudah dikirim. Menunggu admin memulai masa sewa.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppColors.warning,
-                              fontWeight: FontWeight.w900,
-                              height: 1.4,
-                            ),
-                          )
-                        : AppButton(
-                            text: 'Verifikasi Kondisi Awal Barang',
-                            icon: Icons.fact_check_rounded,
-                            backgroundColor: AppColors.black,
-                            foregroundColor: AppColors.white,
-                            onPressed: () {
-                              _openConditionVerification(
-                                context,
-                                ref,
-                                booking,
-                                'before_rent',
-                              );
-                            },
-                          )
-                  : booking.status == 'ongoing' || booking.status == 'active'
-                  ? const Text(
+                    );
+                  }
+
+                  if (needsConditionVerification) {
+                    if (state.hasSubmittedBeforeConditionVerification) {
+                      return const Text(
+                        'Verifikasi kondisi awal barang sudah dikirim. Menunggu admin memulai masa sewa.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.w900,
+                          height: 1.4,
+                        ),
+                      );
+                    }
+
+                    return AppButton(
+                      text: 'Verifikasi Kondisi Awal Barang',
+                      icon: Icons.fact_check_rounded,
+                      backgroundColor: AppColors.black,
+                      foregroundColor: AppColors.white,
+                      onPressed: () {
+                        _openConditionVerification(
+                          context,
+                          ref,
+                          booking,
+                          'before_rent',
+                        );
+                      },
+                    );
+                  }
+
+                  if (booking.status == 'ongoing' ||
+                      booking.status == 'active') {
+                    return const Text(
                       'Masa sewa sedang berjalan.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -281,9 +342,11 @@ class BookingDetailScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w900,
                         height: 1.4,
                       ),
-                    )
-                  : booking.status == 'completed'
-                  ? const Text(
+                    );
+                  }
+
+                  if (booking.status == 'completed') {
+                    return const Text(
                       'Booking sudah selesai.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -291,15 +354,19 @@ class BookingDetailScreen extends ConsumerWidget {
                         fontWeight: FontWeight.w900,
                         height: 1.4,
                       ),
-                    )
-                  : Text(
-                      _bottomStatusMessage(booking.status),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    );
+                  }
+
+                  return Text(
+                    _bottomStatusMessage(booking.status),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w900,
                     ),
+                  );
+                },
+              ),
             ),
           );
         },

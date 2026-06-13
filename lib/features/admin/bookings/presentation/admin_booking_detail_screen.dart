@@ -14,6 +14,64 @@ class AdminBookingDetailScreen extends ConsumerWidget {
 
   const AdminBookingDetailScreen({super.key, required this.booking});
 
+  Future<void> _approveIdentity(
+    BuildContext context,
+    WidgetRef ref,
+    AdminIdentityVerificationModel verification,
+  ) async {
+    final confirmed = await _showConfirmDialog(
+      context: context,
+      title: 'Setujui KTP?',
+      message:
+          'Jika KTP disetujui, customer dapat melanjutkan proses verifikasi kondisi barang.',
+      confirmText: 'Setujui KTP',
+    );
+
+    if (confirmed != true) return;
+
+    final success = await ref
+        .read(adminIdentityVerificationsControllerProvider.notifier)
+        .approve(verification.id);
+
+    if (!context.mounted) return;
+
+    if (success) {
+      ref.invalidate(adminIdentityVerificationByBookingProvider(booking.id));
+      ref.invalidate(adminIdentityVerificationsControllerProvider);
+      ref.invalidate(adminBookingsControllerProvider);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verifikasi KTP berhasil disetujui.')),
+      );
+    }
+  }
+
+  Future<void> _rejectIdentity(
+    BuildContext context,
+    WidgetRef ref,
+    AdminIdentityVerificationModel verification,
+  ) async {
+    final reason = await _showRejectDialog(context);
+
+    if (reason == null || reason.trim().isEmpty) return;
+
+    final success = await ref
+        .read(adminIdentityVerificationsControllerProvider.notifier)
+        .reject(id: verification.id, reason: reason);
+
+    if (!context.mounted) return;
+
+    if (success) {
+      ref.invalidate(adminIdentityVerificationByBookingProvider(booking.id));
+      ref.invalidate(adminIdentityVerificationsControllerProvider);
+      ref.invalidate(adminBookingsControllerProvider);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verifikasi KTP berhasil ditolak.')),
+      );
+    }
+  }
+
   Future<void> _approve(BuildContext context, WidgetRef ref) async {
     final confirmed = await _showConfirmDialog(
       context: context,
@@ -119,7 +177,23 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     final identityVerificationState = ref.watch(
       adminIdentityVerificationByBookingProvider(booking.id),
     );
+
     final identityVerification = identityVerificationState.asData?.value;
+
+    final identityListState = ref.watch(
+      adminIdentityVerificationsControllerProvider,
+    );
+
+    final identityUpdatingId = identityListState.asData?.value.updatingId;
+
+    final isIdentityLoading = identityVerificationState.maybeWhen(
+      loading: () => true,
+      orElse: () => false,
+    );
+
+    final isIdentityUpdating =
+        identityVerification != null &&
+        identityUpdatingId == identityVerification.id;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -166,7 +240,15 @@ class AdminBookingDetailScreen extends ConsumerWidget {
           ),
           child: _ActionButtons(
             booking: booking,
-            isUpdating: isUpdating,
+            identityVerification: identityVerification,
+            isUpdating: isUpdating || isIdentityUpdating,
+            isIdentityLoading: isIdentityLoading,
+            onApproveIdentity: identityVerification == null
+                ? null
+                : () => _approveIdentity(context, ref, identityVerification),
+            onRejectIdentity: identityVerification == null
+                ? null
+                : () => _rejectIdentity(context, ref, identityVerification),
             onApprove: () => _approve(context, ref),
             onReject: () => _reject(context, ref),
             onStart: () => _start(context, ref),
@@ -953,7 +1035,11 @@ class _VerificationStatusIcon extends StatelessWidget {
 
 class _ActionButtons extends StatelessWidget {
   final AdminBookingModel booking;
+  final AdminIdentityVerificationModel? identityVerification;
   final bool isUpdating;
+  final bool isIdentityLoading;
+  final VoidCallback? onApproveIdentity;
+  final VoidCallback? onRejectIdentity;
   final VoidCallback onApprove;
   final VoidCallback onReject;
   final VoidCallback onStart;
@@ -961,7 +1047,11 @@ class _ActionButtons extends StatelessWidget {
 
   const _ActionButtons({
     required this.booking,
+    required this.identityVerification,
     required this.isUpdating,
+    required this.isIdentityLoading,
+    required this.onApproveIdentity,
+    required this.onRejectIdentity,
     required this.onApprove,
     required this.onReject,
     required this.onStart,
@@ -979,42 +1069,85 @@ class _ActionButtons extends StatelessWidget {
       );
     }
 
-    if (booking.canApprove) {
-      return Row(
-        children: [
-          Expanded(
-            child: _RejectButton(text: 'Tolak Pesanan', onPressed: onReject),
+    if (booking.status == 'pending_verification') {
+      if (isIdentityLoading) {
+        return const SizedBox(
+          height: 56,
+          child: Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AppButton(
-              text: 'Setujui',
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.black,
-              onPressed: onApprove,
+        );
+      }
+
+      final verification = identityVerification;
+
+      if (verification == null) {
+        return const Text(
+          'Menunggu customer mengirim atau melengkapi verifikasi KTP.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w900,
+            height: 1.4,
+          ),
+        );
+      }
+
+      if (verification.isPending) {
+        return Row(
+          children: [
+            Expanded(
+              child: _RejectButton(
+                text: 'Tolak KTP',
+                onPressed: onRejectIdentity,
+              ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AppButton(
+                text: 'Setujui',
+                icon: Icons.verified_rounded,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.black,
+                onPressed: onApproveIdentity,
+              ),
+            ),
+          ],
+        );
+      }
+
+      if (verification.isApproved) {
+        return const Text(
+          'KTP sudah disetujui. Menunggu customer mengirim verifikasi kondisi awal barang.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.warning,
+            fontWeight: FontWeight.w900,
+            height: 1.4,
           ),
-        ],
-      );
+        );
+      }
+
+      if (verification.isRejected) {
+        return const Text(
+          'KTP ditolak. Menunggu customer mengirim ulang verifikasi KTP.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.danger,
+            fontWeight: FontWeight.w900,
+            height: 1.4,
+          ),
+        );
+      }
     }
 
     if (booking.canStart) {
-      return Row(
-        children: [
-          Expanded(
-            child: _RejectButton(text: 'Tolak Pesanan', onPressed: onReject),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AppButton(
-              text: 'Mulai Sewa',
-              icon: Icons.play_arrow_rounded,
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.black,
-              onPressed: onStart,
-            ),
-          ),
-        ],
+      return AppButton(
+        text: 'Mulai Sewa',
+        icon: Icons.play_arrow_rounded,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.black,
+        onPressed: onStart,
       );
     }
 
@@ -1025,6 +1158,25 @@ class _ActionButtons extends StatelessWidget {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.black,
         onPressed: onComplete,
+      );
+    }
+
+    if (booking.canApprove) {
+      return Row(
+        children: [
+          Expanded(
+            child: _RejectButton(text: 'Tolak Pesanan', onPressed: onReject),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: AppButton(
+              text: 'Setujui Pesanan',
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.black,
+              onPressed: onApprove,
+            ),
+          ),
+        ],
       );
     }
 
@@ -1040,16 +1192,14 @@ class _ActionButtons extends StatelessWidget {
 
   String _message(String status) {
     switch (status) {
-      case 'pending_verification':
-        return 'Menunggu customer mengirim atau melengkapi verifikasi KTP.';
       case 'waiting_payment':
         return 'Menunggu customer melakukan pembayaran.';
       case 'payment_pending':
         return 'Menunggu status pembayaran diperbarui.';
       case 'paid':
-        return 'Pembayaran berhasil. Menunggu proses verifikasi kondisi.';
+        return 'Pembayaran berhasil. Menunggu customer mengirim verifikasi kondisi awal barang.';
       case 'approved':
-        return 'Pesanan disetujui. Menunggu verifikasi kondisi awal.';
+        return 'Menunggu customer mengirim verifikasi kondisi awal barang.';
       case 'ongoing':
         return 'Masa sewa sedang berlangsung.';
       case 'completed':
@@ -1068,7 +1218,7 @@ class _ActionButtons extends StatelessWidget {
 
 class _RejectButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _RejectButton({required this.text, required this.onPressed});
 
