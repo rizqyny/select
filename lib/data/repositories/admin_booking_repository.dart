@@ -57,9 +57,58 @@ class AdminBookingRepository {
     }
   }
 
+  Future<void> _approvePendingConditionVerifications({
+    required int bookingId,
+    required String type,
+  }) async {
+    final verifications = await fetchAdminConditionVerifications(
+      bookingId: bookingId,
+      type: type,
+    );
+
+    if (verifications.isEmpty) {
+      throw ApiException(
+        message: type == 'before_rent'
+            ? 'Customer belum mengirim foto kondisi awal barang.'
+            : 'Customer belum mengirim foto kondisi akhir barang.',
+      );
+    }
+
+    final rejectedVerifications = verifications.where((item) {
+      return item.isRejected;
+    }).toList();
+
+    if (rejectedVerifications.isNotEmpty) {
+      throw ApiException(
+        message: type == 'before_rent'
+            ? 'Foto kondisi awal barang sudah ditolak. Customer perlu mengirim ulang.'
+            : 'Foto kondisi akhir barang sudah ditolak. Customer perlu mengirim ulang.',
+      );
+    }
+
+    for (final verification in verifications) {
+      if (verification.isPending) {
+        await _patchOrPost(
+          ApiConstants.adminApproveConditionVerification(verification.id),
+        );
+      }
+    }
+  }
+
   Future<void> startBooking(int id) async {
     try {
-      await _patchOrPost(ApiConstants.adminStartBooking(id));
+      await _approvePendingConditionVerifications(
+        bookingId: id,
+        type: 'before_rent',
+      );
+
+      await _patchOrPost(
+        ApiConstants.adminStartBooking(id),
+        data: {
+          'note':
+              'Foto kondisi awal barang sudah disetujui admin. Masa sewa dimulai.',
+        },
+      );
     } on DioException catch (error) {
       throw _handleDioError(error);
     }
@@ -67,7 +116,18 @@ class AdminBookingRepository {
 
   Future<void> completeBooking(int id) async {
     try {
-      await _patchOrPost(ApiConstants.adminCompleteBooking(id));
+      await _approvePendingConditionVerifications(
+        bookingId: id,
+        type: 'after_rent',
+      );
+
+      await _patchOrPost(
+        ApiConstants.adminCompleteBooking(id),
+        data: {
+          'note':
+              'Foto kondisi akhir barang sudah disetujui admin. Masa sewa diselesaikan.',
+        },
+      );
     } on DioException catch (error) {
       throw _handleDioError(error);
     }

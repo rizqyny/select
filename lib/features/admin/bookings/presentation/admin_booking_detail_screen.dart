@@ -12,11 +12,26 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../../data/models/admin_condition_verification_model.dart';
 import '../../../../../data/providers/repository_providers.dart';
+import '../../dashboard/providers/admin_dashboard_provider.dart';
+import '../../verifications/providers/admin_condition_verifications_provider.dart';
 
 class AdminBookingDetailScreen extends ConsumerWidget {
   final AdminBookingModel booking;
 
   const AdminBookingDetailScreen({super.key, required this.booking});
+
+  void _invalidateRentalFlowProviders(WidgetRef ref) {
+    ref.invalidate(adminBookingsControllerProvider);
+    ref.invalidate(adminDashboardControllerProvider);
+
+    ref.invalidate(adminIdentityVerificationByBookingProvider(booking.id));
+    ref.invalidate(adminIdentityVerificationsControllerProvider);
+
+    ref.invalidate(
+      adminBeforeConditionVerificationByBookingProvider(booking.id),
+    );
+    ref.invalidate(adminConditionVerificationsControllerProvider);
+  }
 
   Future<void> _approveIdentity(
     BuildContext context,
@@ -40,13 +55,13 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
-      ref.invalidate(adminIdentityVerificationByBookingProvider(booking.id));
-      ref.invalidate(adminIdentityVerificationsControllerProvider);
-      ref.invalidate(adminBookingsControllerProvider);
+      _invalidateRentalFlowProviders(ref);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Verifikasi KTP berhasil disetujui.')),
       );
+
+      Navigator.pop(context, true);
     }
   }
 
@@ -66,13 +81,13 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
-      ref.invalidate(adminIdentityVerificationByBookingProvider(booking.id));
-      ref.invalidate(adminIdentityVerificationsControllerProvider);
-      ref.invalidate(adminBookingsControllerProvider);
+      _invalidateRentalFlowProviders(ref);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Verifikasi KTP berhasil ditolak.')),
       );
+
+      Navigator.pop(context, true);
     }
   }
 
@@ -94,6 +109,8 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
+      _invalidateRentalFlowProviders(ref);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pesanan berhasil disetujui.')),
       );
@@ -114,6 +131,8 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
+      _invalidateRentalFlowProviders(ref);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pesanan berhasil ditolak.')),
       );
@@ -140,9 +159,13 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Sewa berhasil dimulai.')));
+      _invalidateRentalFlowProviders(ref);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kondisi barang disetujui dan sewa berhasil dimulai.'),
+        ),
+      );
 
       Navigator.pop(context, true);
     }
@@ -166,6 +189,8 @@ class AdminBookingDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (success) {
+      _invalidateRentalFlowProviders(ref);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sewa berhasil diselesaikan.')),
       );
