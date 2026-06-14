@@ -38,9 +38,7 @@ class NotificationsScreen extends ConsumerWidget {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notifikasi tes berhasil dikirim.'),
-        ),
+        const SnackBar(content: Text('Notifikasi tes berhasil dikirim.')),
       );
     }
   }
@@ -86,7 +84,9 @@ class NotificationsScreen extends ConsumerWidget {
         data: (state) {
           return RefreshIndicator(
             onRefresh: () {
-              return ref.read(notificationsControllerProvider.notifier).refresh();
+              return ref
+                  .read(notificationsControllerProvider.notifier)
+                  .refresh();
             },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
@@ -100,39 +100,27 @@ class NotificationsScreen extends ConsumerWidget {
                   _MessageBox(message: state.errorMessage!),
                   const SizedBox(height: 14),
                 ],
-                AppButton(
-                  text: 'Kirim Notifikasi Tes',
-                  icon: Icons.notifications_active_rounded,
-                  backgroundColor: AppColors.black,
-                  foregroundColor: AppColors.white,
-                  onPressed: () => _sendTestNotification(context, ref),
-                ),
-                const SizedBox(height: 18),
                 if (state.notifications.isEmpty)
                   const _EmptyState()
                 else
-                  ...state.notifications.map(
-                    (notification) {
-                      final isUpdating = state.updatingId == notification.id;
+                  ...state.notifications.map((notification) {
+                    final isUpdating = state.updatingId == notification.id;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: _NotificationCard(
-                          notification: notification,
-                          isUpdating: isUpdating,
-                          onTap: () async {
-                            if (!notification.isRead) {
-                              await ref
-                                  .read(
-                                    notificationsControllerProvider.notifier,
-                                  )
-                                  .markAsRead(notification.id);
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: _NotificationCard(
+                        notification: notification,
+                        isUpdating: isUpdating,
+                        onTap: () async {
+                          if (!notification.isRead) {
+                            await ref
+                                .read(notificationsControllerProvider.notifier)
+                                .markAsRead(notification.id);
+                          }
+                        },
+                      ),
+                    );
+                  }),
               ],
             ),
           );
@@ -146,10 +134,7 @@ class _HeaderCard extends StatelessWidget {
   final int total;
   final int unread;
 
-  const _HeaderCard({
-    required this.total,
-    required this.unread,
-  });
+  const _HeaderCard({required this.total, required this.unread});
 
   @override
   Widget build(BuildContext context) {
@@ -325,9 +310,7 @@ class _NotificationCard extends StatelessWidget {
 class _MessageBox extends StatelessWidget {
   final String message;
 
-  const _MessageBox({
-    required this.message,
-  });
+  const _MessageBox({required this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -396,10 +379,7 @@ class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const _ErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {

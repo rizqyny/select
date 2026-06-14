@@ -10,6 +10,8 @@ import '../../../../../data/models/admin_identity_verification_model.dart';
 import '../../verifications/providers/admin_identity_verifications_provider.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../../../data/models/admin_condition_verification_model.dart';
+import '../../../../../data/providers/repository_providers.dart';
 
 class AdminBookingDetailScreen extends ConsumerWidget {
   final AdminBookingModel booking;
@@ -180,6 +182,10 @@ class AdminBookingDetailScreen extends ConsumerWidget {
       adminIdentityVerificationByBookingProvider(booking.id),
     );
 
+    final conditionVerificationState = ref.watch(
+      adminBeforeConditionVerificationByBookingProvider(booking.id),
+    );
+
     final identityVerification = identityVerificationState.asData?.value;
 
     final identityListState = ref.watch(
@@ -218,7 +224,10 @@ class AdminBookingDetailScreen extends ConsumerWidget {
             verificationState: identityVerificationState,
           ),
           const SizedBox(height: 16),
-          _ConditionVerificationCard(booking: booking),
+          _ConditionVerificationCard(
+            booking: booking,
+            verificationState: conditionVerificationState,
+          ),
           if (state?.errorMessage != null) ...[
             const SizedBox(height: 16),
             _MessageBox(message: state!.errorMessage!),
@@ -352,6 +361,47 @@ class AdminBookingDetailScreen extends ConsumerWidget {
       },
     );
   }
+}
+
+final adminBeforeConditionVerificationByBookingProvider =
+    FutureProvider.family<AdminConditionVerificationModel?, int>((
+      ref,
+      bookingId,
+    ) async {
+      final repository = ref.read(adminBookingRepositoryProvider);
+
+      final verifications = await repository.fetchAdminConditionVerifications(
+        bookingId: bookingId,
+        type: 'before_rent',
+      );
+
+      if (verifications.isEmpty) {
+        return null;
+      }
+
+      return verifications.first;
+    });
+
+final adminConditionPhotoUrlProvider = FutureProvider.family<String, String>((
+  ref,
+  storageKey,
+) async {
+  final separatorIndex = storageKey.indexOf('|');
+
+  if (separatorIndex == -1) {
+    return '';
+  }
+
+  final bucket = storageKey.substring(0, separatorIndex);
+  final path = storageKey.substring(separatorIndex + 1);
+
+  final repository = ref.read(adminBookingRepositoryProvider);
+
+  return repository.createSignedReadUrl(bucket: bucket, path: path);
+});
+
+String _conditionStorageKey({required String bucket, required String path}) {
+  return '$bucket|$path';
 }
 
 class _BookingSummaryCard extends StatelessWidget {
@@ -909,33 +959,102 @@ class _VerificationLocationMapBox extends StatelessWidget {
 
 class _ConditionVerificationCard extends StatelessWidget {
   final AdminBookingModel booking;
+  final AsyncValue<AdminConditionVerificationModel?> verificationState;
 
-  const _ConditionVerificationCard({required this.booking});
+  const _ConditionVerificationCard({
+    required this.booking,
+    required this.verificationState,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final status = _conditionStatus(booking);
-
-    return _VerificationCard(
-      title: 'Verifikasi Kondisi Barang',
-      status: status,
-      icon: Icons.verified_rounded,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ConditionPreview(status: status),
-          const SizedBox(height: 12),
-          _VerificationInfoBox(
-            icon: Icons.info_outline_rounded,
-            title: 'Status Kondisi Awal',
-            subtitle: _conditionMessage(booking.status),
+    return verificationState.when(
+      loading: () {
+        return _VerificationCard(
+          title: 'Verifikasi Kondisi Barang',
+          status: _VerificationViewStatus.pending,
+          icon: Icons.verified_rounded,
+          child: const SizedBox(
+            height: 120,
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           ),
-        ],
-      ),
+        );
+      },
+      error: (error, stackTrace) {
+        return _VerificationCard(
+          title: 'Verifikasi Kondisi Barang',
+          status: _VerificationViewStatus.rejected,
+          icon: Icons.verified_rounded,
+          child: _VerificationInfoBox(
+            icon: Icons.error_outline_rounded,
+            title: 'Gagal Memuat Kondisi Barang',
+            subtitle: error.toString().replaceFirst('Exception: ', ''),
+          ),
+        );
+      },
+      data: (verification) {
+        if (verification == null) {
+          final status = _conditionStatusFromBooking(booking);
+
+          return _VerificationCard(
+            title: 'Verifikasi Kondisi Barang',
+            status: status,
+            icon: Icons.verified_rounded,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ConditionPreview(status: status, hasVerification: false),
+                const SizedBox(height: 12),
+                _VerificationInfoBox(
+                  icon: Icons.info_outline_rounded,
+                  title: 'Status Kondisi Awal',
+                  subtitle: _conditionMessage(booking.status),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final status = _conditionStatusFromVerification(verification);
+
+        return _VerificationCard(
+          title: 'Verifikasi Kondisi Barang',
+          status: status,
+          icon: Icons.verified_rounded,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ConditionPhotoPreview(verification: verification),
+              const SizedBox(height: 12),
+              _VerificationInfoBox(
+                icon: Icons.info_outline_rounded,
+                title: 'Data Kondisi Awal',
+                subtitle:
+                    'Barang: ${_emptyDash(verification.item.name)}\n'
+                    'Status: ${verification.status}\n'
+                    'Catatan: ${_emptyDash(verification.note)}',
+              ),
+              const SizedBox(height: 12),
+              _VerificationInfoBox(
+                icon: Icons.location_on_outlined,
+                title: 'Lokasi Pengambilan Foto',
+                subtitle:
+                    '${_emptyDash(verification.addressText)}\n'
+                    'Lat: ${verification.latitude}\n'
+                    'Long: ${verification.longitude}',
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  _VerificationViewStatus _conditionStatus(AdminBookingModel booking) {
+  _VerificationViewStatus _conditionStatusFromBooking(
+    AdminBookingModel booking,
+  ) {
     if (booking.status == 'rejected' ||
         booking.status == 'cancelled' ||
         booking.status == 'expired') {
@@ -946,8 +1065,18 @@ class _ConditionVerificationCard extends StatelessWidget {
       return _VerificationViewStatus.approved;
     }
 
-    if (booking.canStart) {
-      return _VerificationViewStatus.pending;
+    return _VerificationViewStatus.pending;
+  }
+
+  _VerificationViewStatus _conditionStatusFromVerification(
+    AdminConditionVerificationModel verification,
+  ) {
+    if (verification.isApproved) {
+      return _VerificationViewStatus.approved;
+    }
+
+    if (verification.isRejected) {
+      return _VerificationViewStatus.rejected;
     }
 
     return _VerificationViewStatus.pending;
@@ -962,7 +1091,7 @@ class _ConditionVerificationCard extends StatelessWidget {
       case 'payment_pending':
       case 'paid':
       case 'approved':
-        return 'Menunggu atau memproses verifikasi kondisi awal barang. Jika data sudah sesuai, tekan Mulai Sewa.';
+        return 'Menunggu customer mengirim verifikasi kondisi awal barang.';
       case 'ongoing':
         return 'Kondisi awal sudah disetujui dan masa sewa sedang berlangsung.';
       case 'completed':
@@ -976,6 +1105,10 @@ class _ConditionVerificationCard extends StatelessWidget {
       default:
         return 'Status kondisi mengikuti proses booking saat ini.';
     }
+  }
+
+  static String _emptyDash(String value) {
+    return value.trim().isEmpty ? '-' : value;
   }
 }
 
@@ -1064,8 +1197,12 @@ class _KtpLine extends StatelessWidget {
 
 class _ConditionPreview extends StatelessWidget {
   final _VerificationViewStatus status;
+  final bool hasVerification;
 
-  const _ConditionPreview({required this.status});
+  const _ConditionPreview({
+    required this.status,
+    required this.hasVerification,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1096,7 +1233,9 @@ class _ConditionPreview extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              isApproved
+              hasVerification
+                  ? 'Kondisi awal barang sudah dikirim customer.'
+                  : isApproved
                   ? 'Kondisi awal sudah disetujui.'
                   : 'Menunggu verifikasi kondisi awal barang.',
               style: TextStyle(
@@ -1106,6 +1245,76 @@ class _ConditionPreview extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ConditionPhotoPreview extends ConsumerWidget {
+  final AdminConditionVerificationModel verification;
+
+  const _ConditionPhotoPreview({required this.verification});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final storageKey = _conditionStorageKey(
+      bucket: verification.photoBucket,
+      path: verification.photoPath,
+    );
+
+    final imageState = ref.watch(adminConditionPhotoUrlProvider(storageKey));
+
+    return Container(
+      width: double.infinity,
+      height: 190,
+      decoration: BoxDecoration(
+        color: AppColors.input,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: imageState.when(
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (error, stackTrace) => const Center(
+          child: Text(
+            'Gagal memuat foto kondisi barang',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        data: (url) {
+          if (url.trim().isEmpty) {
+            return const Center(
+              child: Text(
+                'Foto kondisi tidak tersedia',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            );
+          }
+
+          return Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                child: Text(
+                  'Gagal menampilkan foto kondisi barang',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

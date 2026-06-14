@@ -24,6 +24,7 @@ class CustomerHomeState {
   final bool isLoadingItems;
   final String? errorMessage;
   final Set<int> favoriteItemIds;
+  final ItemModel? featuredItem;
 
   const CustomerHomeState({
     required this.categories,
@@ -33,6 +34,7 @@ class CustomerHomeState {
     required this.isLoadingItems,
     required this.errorMessage,
     required this.favoriteItemIds,
+    required this.featuredItem,
   });
 
   CustomerHomeState copyWith({
@@ -43,6 +45,7 @@ class CustomerHomeState {
     bool? isLoadingItems,
     Object? errorMessage = _unset,
     Set<int>? favoriteItemIds,
+    Object? featuredItem = _unset,
   }) {
     return CustomerHomeState(
       categories: categories ?? this.categories,
@@ -56,6 +59,9 @@ class CustomerHomeState {
           ? this.errorMessage
           : errorMessage as String?,
       favoriteItemIds: favoriteItemIds ?? this.favoriteItemIds,
+      featuredItem: identical(featuredItem, _unset)
+          ? this.featuredItem
+          : featuredItem as ItemModel?,
     );
   }
 }
@@ -69,12 +75,16 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
   @override
   FutureOr<CustomerHomeState> build() async {
     final categories = await _itemRepository.fetchCategories();
-    final items = await _itemRepository.fetchItems();
+
+    final globalItems = await _itemRepository.fetchItems();
+    final itemsWithRatings = await _attachRatings(globalItems);
+
     final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
 
     return CustomerHomeState(
       categories: categories,
-      items: items,
+      items: itemsWithRatings,
+      featuredItem: _chooseFeaturedItem(itemsWithRatings),
       selectedCategoryId: null,
       searchQuery: '',
       isLoadingItems: false,
@@ -90,15 +100,22 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
 
     state = await AsyncValue.guard(() async {
       final categories = await _itemRepository.fetchCategories();
-      final items = await _itemRepository.fetchItems(
+
+      final globalItems = await _itemRepository.fetchItems();
+      final globalItemsWithRatings = await _attachRatings(globalItems);
+
+      final filteredItems = await _itemRepository.fetchItems(
         search: current?.searchQuery ?? '',
         categoryId: current?.selectedCategoryId,
       );
+      final filteredItemsWithRatings = await _attachRatings(filteredItems);
+
       final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
 
       return CustomerHomeState(
         categories: categories,
-        items: items,
+        items: filteredItemsWithRatings,
+        featuredItem: _chooseFeaturedItem(globalItemsWithRatings),
         selectedCategoryId: current?.selectedCategoryId,
         searchQuery: current?.searchQuery ?? '',
         isLoadingItems: false,
@@ -121,10 +138,12 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
     );
 
     try {
-      final items = await _itemRepository.fetchItems(
+      final rawItems = await _itemRepository.fetchItems(
         search: current.searchQuery,
         categoryId: categoryId,
       );
+
+      final items = await _attachRatings(rawItems);
 
       final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
 
@@ -164,10 +183,12 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
     );
 
     try {
-      final items = await _itemRepository.fetchItems(
+      final rawItems = await _itemRepository.fetchItems(
         search: query,
         categoryId: current.selectedCategoryId,
       );
+
+      final items = await _attachRatings(rawItems);
 
       final favoriteIds = await _favoriteRepository.fetchMyFavoriteItemIds();
 
@@ -242,6 +263,68 @@ class CustomerHomeController extends AsyncNotifier<CustomerHomeState> {
         ),
       );
     }
+  }
+
+  Future<List<ItemModel>> _attachRatings(List<ItemModel> items) async {
+    if (items.isEmpty) return items;
+
+    final result = await Future.wait(
+      items.map((item) async {
+        try {
+          final reviews = await _itemRepository.fetchItemReviews(item.id);
+
+          final ratings = <double>[];
+
+          for (final review in reviews) {
+            try {
+              final dynamic dynamicReview = review;
+              final raw = dynamicReview.rating;
+
+              if (raw is num) {
+                ratings.add(raw.toDouble());
+              } else {
+                final parsed = double.tryParse(raw.toString());
+                if (parsed != null) ratings.add(parsed);
+              }
+            } catch (_) {}
+          }
+
+          if (ratings.isEmpty) {
+            return item.copyWith(averageRating: 0, reviewCount: 0);
+          }
+
+          final total = ratings.fold<double>(0, (sum, rating) => sum + rating);
+          final average = total / ratings.length;
+
+          return item.copyWith(
+            averageRating: average,
+            reviewCount: ratings.length,
+          );
+        } catch (_) {
+          return item;
+        }
+      }),
+    );
+
+    return result;
+  }
+
+  ItemModel? _chooseFeaturedItem(List<ItemModel> items) {
+    if (items.isEmpty) return null;
+
+    final sorted = [...items];
+
+    sorted.sort((a, b) {
+      final rentedComparison = b.rentalCount.compareTo(a.rentalCount);
+      if (rentedComparison != 0) return rentedComparison;
+
+      final ratingComparison = b.averageRating.compareTo(a.averageRating);
+      if (ratingComparison != 0) return ratingComparison;
+
+      return b.reviewCount.compareTo(a.reviewCount);
+    });
+
+    return sorted.first;
   }
 
   bool _isFavoriteAlreadyRemoved(Object error) {

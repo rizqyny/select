@@ -79,9 +79,9 @@ class _DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Text(
             'Halo, Admin',
             style: TextStyle(
@@ -89,13 +89,6 @@ class _DashboardHeader extends StatelessWidget {
               fontSize: 22,
               fontWeight: FontWeight.w900,
             ),
-          ),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(
-            Icons.notifications_none_rounded,
-            color: AppColors.textPrimary,
           ),
         ),
       ],

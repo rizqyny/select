@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/errors/api_exception.dart';
 import '../models/admin_booking_model.dart';
+import '../models/admin_condition_verification_model.dart';
 
 class AdminBookingRepository {
   final Dio _dio;
@@ -72,6 +73,50 @@ class AdminBookingRepository {
     }
   }
 
+  Future<List<AdminConditionVerificationModel>>
+  fetchAdminConditionVerifications({int? bookingId, String? type}) async {
+    try {
+      final response = await _dio.get('/admin/verifications/condition');
+
+      final rawList = _extractList(response.data);
+
+      final verifications = rawList
+          .whereType<Map<String, dynamic>>()
+          .map(AdminConditionVerificationModel.fromJson)
+          .toList();
+
+      return verifications.where((verification) {
+        final matchBooking =
+            bookingId == null || verification.bookingId == bookingId;
+        final matchType = type == null || verification.type == type;
+
+        return matchBooking && matchType;
+      }).toList();
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    }
+  }
+
+  Future<String> createSignedReadUrl({
+    required String bucket,
+    required String path,
+  }) async {
+    if (bucket.trim().isEmpty || path.trim().isEmpty) {
+      return '';
+    }
+
+    try {
+      final response = await _dio.post(
+        '/storage/signed-read-url',
+        data: {'bucket': bucket, 'path': path, 'expires_in': 3600},
+      );
+
+      return _extractUrl(response.data);
+    } on DioException catch (error) {
+      throw _handleDioError(error);
+    }
+  }
+
   Future<Response<dynamic>> _patchOrPost(
     String endpoint, {
     Map<String, dynamic>? data,
@@ -116,6 +161,56 @@ class AdminBookingRepository {
     }
 
     return <dynamic>[];
+  }
+
+  String _extractUrl(Object? body) {
+    if (body is String) {
+      return body;
+    }
+
+    if (body is Map<String, dynamic>) {
+      final directCandidates = [
+        body['signedUrl'],
+        body['signed_url'],
+        body['url'],
+        body['publicUrl'],
+        body['public_url'],
+      ];
+
+      for (final value in directCandidates) {
+        final url = value?.toString().trim() ?? '';
+
+        if (url.isNotEmpty) {
+          return url;
+        }
+      }
+
+      final data = body['data'];
+
+      if (data is String) {
+        return data;
+      }
+
+      if (data is Map<String, dynamic>) {
+        final dataCandidates = [
+          data['signedUrl'],
+          data['signed_url'],
+          data['url'],
+          data['publicUrl'],
+          data['public_url'],
+        ];
+
+        for (final value in dataCandidates) {
+          final url = value?.toString().trim() ?? '';
+
+          if (url.isNotEmpty) {
+            return url;
+          }
+        }
+      }
+    }
+
+    return '';
   }
 
   ApiException _handleDioError(DioException error) {

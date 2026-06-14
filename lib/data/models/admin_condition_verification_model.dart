@@ -44,20 +44,23 @@ class AdminConditionVerificationModel {
 
   factory AdminConditionVerificationModel.fromJson(Map<String, dynamic> json) {
     final bookingRaw = json['booking'];
-    final userRaw = json['user'] ?? json['customer'];
+    final userRaw = json['user'] ?? json['customer'] ?? json['submitter'];
     final itemRaw = json['item'];
 
     return AdminConditionVerificationModel(
       id: _toInt(json['id']),
       bookingId: _toInt(json['booking_id']),
       itemId: _toInt(json['item_id']),
-      userId: _toInt(json['user_id']),
+      userId: _toInt(
+        json['user_id'] ?? json['submitted_by'] ?? json['submittedBy'],
+      ),
       type: json['type']?.toString() ?? '',
       photoBucket:
           json['photo_bucket']?.toString() ??
           json['bucket']?.toString() ??
           'condition-photos',
-      photoPath: json['photo_path']?.toString() ?? '',
+      photoPath:
+          json['photo_path']?.toString() ?? json['photoPath']?.toString() ?? '',
       latitude: _toDouble(json['latitude']),
       longitude: _toDouble(json['longitude']),
       addressText: json['address_text']?.toString() ?? '-',

@@ -18,6 +18,9 @@ class ItemModel {
   final ItemPrimaryImage? primaryImage;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final double averageRating;
+  final int reviewCount;
+  final int rentalCount;
 
   const ItemModel({
     required this.id,
@@ -37,6 +40,9 @@ class ItemModel {
     required this.primaryImage,
     required this.createdAt,
     required this.updatedAt,
+    this.averageRating = 0,
+    this.reviewCount = 0,
+    this.rentalCount = 0,
   });
 
   factory ItemModel.fromJson(Map<String, dynamic> json) {
@@ -66,6 +72,62 @@ class ItemModel {
           : null,
       createdAt: _toDateTime(json['created_at']),
       updatedAt: _toDateTime(json['updated_at']),
+      averageRating: _toDouble(
+        json['average_rating'] ??
+            json['averageRating'] ??
+            json['rating_avg'] ??
+            json['ratingAvg'] ??
+            json['avg_rating'] ??
+            json['avgRating'] ??
+            json['rating'],
+      ),
+      reviewCount: _toInt(
+        json['review_count'] ??
+            json['reviewCount'] ??
+            json['reviews_count'] ??
+            json['reviewsCount'] ??
+            json['_count']?['reviews'],
+      ),
+      rentalCount: _toInt(
+        json['rental_count'] ??
+            json['rentalCount'] ??
+            json['total_rented'] ??
+            json['totalRented'] ??
+            json['booking_count'] ??
+            json['bookingCount'] ??
+            json['bookings_count'] ??
+            json['bookingsCount'] ??
+            json['_count']?['booking_items'],
+      ),
+    );
+  }
+
+  ItemModel copyWith({
+    double? averageRating,
+    int? reviewCount,
+    int? rentalCount,
+  }) {
+    return ItemModel(
+      id: id,
+      categoryId: categoryId,
+      category: category,
+      name: name,
+      slug: slug,
+      brand: brand,
+      model: model,
+      serialNumber: serialNumber,
+      description: description,
+      dailyPrice: dailyPrice,
+      replacementValue: replacementValue,
+      status: status,
+      isActive: isActive,
+      specifications: specifications,
+      primaryImage: primaryImage,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      averageRating: averageRating ?? this.averageRating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      rentalCount: rentalCount ?? this.rentalCount,
     );
   }
 
@@ -94,6 +156,13 @@ class ItemModel {
   static num _toNum(Object? value) {
     if (value is num) return value;
     if (value is String) return num.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static double _toDouble(Object? value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0;
     return 0;
   }
 

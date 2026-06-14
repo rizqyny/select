@@ -104,9 +104,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 ref.read(customerHomeControllerProvider.notifier).refresh(),
           ),
           data: (state) {
-            final featuredItem = state.items.isNotEmpty
-                ? state.items.first
-                : null;
+            final featuredItem = state.featuredItem;
 
             return RefreshIndicator(
               onRefresh: () =>
@@ -303,11 +301,15 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
   static double _safeRating(dynamic item) {
     try {
-      final raw = item.averageRating ?? item.rating ?? 4.8;
-      if (raw is num) return raw.toDouble();
-      return double.tryParse(raw.toString()) ?? 4.8;
+      final raw = item.averageRating;
+
+      if (raw is num) {
+        return raw.toDouble();
+      }
+
+      return double.tryParse(raw.toString()) ?? 0;
     } catch (_) {
-      return 4.8;
+      return 0;
     }
   }
 }
